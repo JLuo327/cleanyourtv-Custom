@@ -2228,8 +2228,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      *   less than the grid's three) and opens UPWARDS, its bottom edge flush with the tile's top
      *   edge — zero gap, the way a tvOS menu grows out of the icon it belongs to.</li>
      *   <li><b>Bottom grid row</b> (last visible row above the dock): the mirror image — one icon
-     *   width to the LEFT, opening DOWNWARDS with its top edge flush against the tile's bottom
-     *   edge, so the panel reaches into the open space below instead of covering the dock.</li>
+     *   width to the LEFT, the panel's bottom edge flush with the tile's bottom edge, so it hangs
+     *   below the tile instead of covering the dock.</li>
      *   <li><b>Every other row</b>: three icon widths right, opening upwards.</li>
      * </ul>
      *
@@ -2256,10 +2256,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int slide = dockRow ? dockShift : (bottomRow ? bottomShift : shift);
             x = tile.right - width + gap + slide;       // right edges line up, then the slide
             if (bottomRow) {
-                y = tile.bottom + gap;                  // bottom row: open downwards, flush below
-                if (y + height > screenH - margin) {
-                    y = tile.top - height - gap;        // no room below: back up above
-                }
+                y = tile.bottom - height;               // bottom row: bottom edges flush
+                if (y < margin) y = margin;             // not enough room above: slide to top margin
             } else {
                 y = tile.top - height - gap;            // grid and dock: bottom edge flush above tile
                 if (y < margin) y = tile.bottom + gap;  // no room above: open downwards
