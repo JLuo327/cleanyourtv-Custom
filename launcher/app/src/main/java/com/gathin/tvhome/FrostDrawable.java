@@ -2,6 +2,7 @@ package com.gathin.tvhome;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
@@ -28,12 +29,16 @@ import android.graphics.drawable.Drawable;
 final class FrostDrawable extends Drawable {
 
     /**
-     * No smoke at all: the panel is meant to sit twenty percent *above* the desktop in brightness,
+     * No smoke by default: the control centre sits twenty percent *above* the desktop in brightness,
      * so a tint of any weight would work against it. The colour work is done on the bitmap instead
      * (see {@link #BRIGHTNESS}), which leaves the panel's own tone free to follow the wallpaper.
+     *
+     * <p>A caller that wants a readable panel over a bright wallpaper — the long-press menu, for
+     * instance — passes a small {@code tint} (0..1) and gets a uniform ink wash over the frost so
+     * the white labels have something to sit on without the panel reading as a solid slab.
      */
-    private static final int TINT_TOP = 0x00FFFFFF;
-    private static final int TINT_BOTTOM = 0x00FFFFFF;
+    private final int tintTop;
+    private final int tintBottom;
 
     /**
      * Glass that catches light rather than absorbing it: the frost is lifted well past the desktop's
@@ -59,10 +64,18 @@ final class FrostDrawable extends Drawable {
     private final Rect srcRect = new Rect();
     private boolean prepared;
 
-    FrostDrawable(Bitmap src, float radius, float density) {
+    /**
+     * @param tint uniform ink wash over the frost, 0 (none) to 1 (near-opaque). A small value,
+     *            ~0.2, is enough to lift white labels off a bright wallpaper without burying the
+     *            blurred colour underneath.
+     */
+    FrostDrawable(Bitmap src, float radius, float density, float tint) {
         this.src = src;
         this.radius = radius;
         this.rimWidth = Math.max(1f, 1.5f * density);
+        int a = (int) (Math.max(0f, Math.min(1f, tint)) * 255f + 0.5f);
+        this.tintTop = Color.argb(a, 0, 0, 0);
+        this.tintBottom = Color.argb(a, 0, 0, 0);
         // Frosted glass mutes colour; it does not hand it back at full strength. Without this the
         // sunset behind the control centre bled through as a brown wash, which read as a dirty
         // panel rather than as glass — the blur was there, the silk was not.
@@ -90,7 +103,7 @@ final class FrostDrawable extends Drawable {
         sheenPaint.setShader(new LinearGradient(0f, area.top, 0f, area.top + area.height() * 0.38f,
                 0x16FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
         tintPaint.setShader(new LinearGradient(0f, area.top, 0f, area.bottom,
-                TINT_TOP, TINT_BOTTOM, Shader.TileMode.CLAMP));
+                tintTop, tintBottom, Shader.TileMode.CLAMP));
         prepared = true;
     }
 

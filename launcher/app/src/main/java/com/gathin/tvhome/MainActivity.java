@@ -1521,9 +1521,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout grid = panel.findViewById(R.id.iconGrid);
         ScrollView scroll = panel.findViewById(R.id.scroll);
         final int n = tile.children.size();
+        // A square block, the way it was: four apps make a 2x2 and nine a 3x3, the panel hugging
+        // the block. (A flat spread row was tried here and read wrong inside the popup — the spread
+        // belongs on the folder tile's picture, not in the panel.)
         final int side = Math.max(1, Math.min(5, (int) Math.ceil(Math.sqrt(n))));
         View first = null;
         LinearLayout row = null;
+        final List<View> cells = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             if (i % side == 0) {
                 row = new LinearLayout(this);
@@ -1538,6 +1542,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             final AppAdapter.Entry kid = tile.children.get(i);
             View cell = getLayoutInflater().inflate(R.layout.item_folder_icon, row, false);
+            cell.setId(View.generateViewId());   // linkTiles() below wires the D-pad by id
             ((ImageView) cell.findViewById(R.id.icon)).setImageDrawable(kid.icon);
             ((TextView) cell.findViewById(R.id.label)).setText(kid.label);
             cell.setOnClickListener(v -> {
@@ -1562,9 +1567,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return false;
             });
             liftOnFocus(cell, 1.12f);
-            row.addView(cell);
+            row.addView(cell, new LinearLayout.LayoutParams(
+                    (int) (112 * density), (int) (112 * density)));
             if (first == null) first = cell;
+            cells.add(cell);
         }
+        // The default focus search inside a popup gives up on this device instead of walking to the
+        // next cell (see linkTiles), so the grid is wired by hand — the same treatment the control
+        // centre and the menus get. Without it only the first Right ever moved.
+        linkTiles(cells, side);
         // No padding out to a square. The blanks used to keep the panel perfectly square, but a
         // folder of six then drew two rows of icons over a third row of nothing, which reads as a
         // rendering fault rather than as tidiness. The panel now stops at the last real row; the
@@ -1742,7 +1753,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         for (final Config.Slot f : foldersOnly) {
-            addMenuRow(rows, R.drawable.ic_tv_folder_in, getString(R.string.folder_entry, f.name, f.apps.size()), () -> {
+            // The name only: how many apps are inside is the folder tile's business, and in a list
+            // of folders it read as noise ("工具 · 4 apps" twice over).
+            addMenuRow(rows, R.drawable.ic_tv_folder_in, f.name, () -> {
                 List<Config.Slot> next = withoutApp(adapter.layout(), tile.pkg);
                 int at = indexOfFolder(next, f.uid);
                 if (at < 0) return;
@@ -1871,8 +1884,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         save.setOnClickListener(choose);
         dialog.setOnCancelListener(d -> choose.onClick(cancel));    // Back means Cancel
         dialog.show();
-        // Bare, like the panels: no frosted slab and no drop shadow. The field and the keys carry
-        // the ink; over a transparent holder the rename keyboard reads straight off the wallpaper.
+        // Same whisper of frost as the panels: the field and the keys carry their own ink, but a
+        // bare transparent block over a bright wallpaper left the white text without footing. A
+        // light ink wash over the blurred slice keeps it readable while the dialog still reads as
+        // glass rather than as a slab.
+        frostPanel(panel, 16f, 0.22f, null);
         field.requestFocus();
         // The whole old name starts selected, so the first key typed replaces it the way a rename
         // field should. Asked for after the dialog is up: a selection made before focus is lost.
@@ -2139,37 +2155,76 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         showFolderScrim();
         final PopupWindow popup = glassPopup(panel, width, this::hideFolderScrim);
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(),
-                Math.max((int) (280 * density), root.getWidth() - (int) (40 * density)))));
+        // The panel hugs its rows now, so the menu is only as long as its longest row — the compact
+        // tvOS shape — instead of a fixed 300dp slab with empty glass on the right. The width the
+        // caller passes stays as the ceiling, so a long folder name still ellipsises instead of
+        // running off the screen.
+        int ceiling = Math.max(width, root.getWidth() - (int) (40 * density));
+        popup.setWidth(Math.min(panel.getMeasuredWidth(), ceiling));
         panel.setAlpha(0f);
         panel.setScaleX(0.94f);
         panel.setScaleY(0.96f);
-        // Bare, as asked: no frosted slab and no drop shadow. The rows carry their own ink, so the
-        // panel is only a transparent holder that floats straight on the wallpaper; the 10% scrim
-        // below it is all that marks a layer has opened.
-        panel.setBackground(null);
+        // A whisper of frost rather than a bare transparent panel: the rows only carry their own
+        // light ink, so over a bright wallpaper the white labels lost their footing. A small ink
+        // wash over the blurred slice (tint ~0.22) gives them something to sit on while the panel
+        // still reads as glass, not as a slab. No drop shadow (elevation 0) — that was the floaty
+        // halo the bare version was asked to drop.
         panel.setElevation(0f);
         int[] spot = spotNearTile(tileRect(tilePosition), popup.getWidth(), panel.getMeasuredHeight());
         popup.showAtLocation(root, Gravity.NO_GRAVITY, spot[0], spot[1]);
+        frostPanel(panel, 12f, 0.22f, null);
         panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
     }
 
-    /** Screen rectangle of a grid tile by position, or null when it is scrolled off screen. */
-    private Rect tileRect(int position) {
+    /** Screen rectangle of the grid tile at this adapter position, or null when it has no view. */
+    private Rect rectAt(int position) {
         if (position < 0) return null;
         RecyclerView.ViewHolder holder = grid.findViewHolderForAdapterPosition(position);
-        if (holder == null) return null;
-        View tile = holder.itemView;
-        if (tile.getWidth() <= 0 || tile.getHeight() <= 0) return null;
+        return holder == null ? null : rectOf(holder.itemView);
+    }
+
+    /**
+     * Screen rectangle of the tile holding focus, or null. A tile pressed a moment ago normally
+     * still owns focus, so when the wanted tile has no view this instant — a scroll in flight
+     * detaches holders for a frame or two — its corner is the next best corner to hug, and far
+     * better than dropping the panel at a screen corner unrelated to the press.
+     */
+    private Rect focusedTileRect() {
+        return rectOf(grid.getFocusedChild());
+    }
+
+    private static Rect rectOf(View tile) {
+        if (tile == null || tile.getWidth() <= 0 || tile.getHeight() <= 0) return null;
+        // The card, not the item view: the item adds room around the card for the focus zoom, so
+        // its rectangle floats a few dp off the tile the eye actually sees. Panels hug the card.
+        View card = tile.findViewById(R.id.card);
+        if (card != null && card.getWidth() > 0 && card.getHeight() > 0) tile = card;
         int[] at = new int[2];
         tile.getLocationOnScreen(at);
         return new Rect(at[0], at[1], at[0] + tile.getWidth(), at[1] + tile.getHeight());
     }
 
+    /** Screen rectangle of a grid tile by position, or null when it is scrolled off screen. */
+    private Rect tileRect(int position) {
+        Rect r = rectAt(position);
+        return r != null ? r : focusedTileRect();
+    }
+
     /**
-     * Top-left corner for a panel that belongs to a tile: up and to the right of the tile. Above is
-     * tried first (the tile stays visible); near the top it flips below. Both axes clamp to screen.
+     * Top-left corner for a panel that belongs to a tile: the panel's bottom-right corner meets
+     * the tile's top-right corner, so the panel unfolds up and to the left out of the very corner
+     * it came from.
+     *
+     * <p>Placing it up-and-to-the-RIGHT instead (the panel's bottom-left at the tile's top-right)
+     * left panel and tile touching at a single point across a gap, and the panel read as floating
+     * free of its tile — on a bottom-row tile it sat half a screen away, which looked cheap.
+     * Hugging the corner keeps the panel's whole bottom edge right above the tile, the way a tvOS
+     * menu grows out of the icon it belongs to.
+     *
+     * <p>Two flips keep the panel on screen: no room above opens it downwards (its top-right
+     * corner at the tile's bottom-right), and a panel wider than the room left of the tile slides
+     * to the screen margin instead of hanging off the left edge.
      */
     private int[] spotNearTile(Rect tile, int width, int height) {
         int margin = (int) (22 * density);
@@ -2179,11 +2234,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int x;
         int y;
         if (tile != null) {
-            x = tile.right + gap;
-            y = tile.top - height - gap;
-            if (y < margin) y = tile.bottom + gap;              // no room above: open downwards
+            x = tile.right - width + gap;                     // right edges line up
+            y = tile.top - height - gap;                      // bottom edge just above the tile
+            if (y < margin) y = tile.bottom + gap;            // no room above: open downwards
+            if (x < margin) x = margin;                       // wider than the room to the left
         } else {
-            x = screenW - margin - width;                       // unknown tile: top right, clear of the pills
+            x = screenW - margin - width;                     // unknown tile: top right, clear of the pills
             y = (int) (150 * density);
         }
         x = Math.min(x, Math.max(margin, screenW - margin - width));
@@ -2220,13 +2276,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int room = Math.max((int) (280 * density), root.getWidth() - (int) (40 * density));
         int want = chooser ? (int) (320 * density) : panel.getMeasuredWidth();
         int width = Math.min(room, Math.max((int) (280 * density), want));
-        // Bare, like the long-press menu: no frosted slab, no drop shadow. The cells carry their own
-        // ink so the white labels stay readable straight on the wallpaper; the 10% scrim is all that
-        // marks a folder has opened.
-        panel.setBackground(null);
+        // A whisper of frost, like the long-press menu: the cells carry their own ink but a bare
+        // transparent block over a bright wallpaper left the white labels without footing. A small
+        // ink wash over the blurred slice gives them one while the panel still reads as glass.
         panel.setElevation(0f);
         if (folderPopupWindow.isShowing()) {
             folderPopupWindow.update(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+            frostPanel(panel, 12f, 0.22f, null);
             return;
         }
         folderPopupWindow.setWidth(width);
@@ -2238,6 +2294,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // centred panel covered the grid and gave no hint which folder it had come from.
         int[] spot = folderSpot(uid, width, panel.getMeasuredHeight());
         folderPopupWindow.showAtLocation(root, Gravity.NO_GRAVITY, spot[0], spot[1]);
+        frostPanel(panel, 12f, 0.22f, null);
         panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
     }
@@ -2248,15 +2305,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * spot instead of trusting a stale rectangle.
      */
     private Rect folderTileRect(String uid) {
-        int pos = adapter.positionOfFolder(uid);
-        if (pos < 0) return null;
-        RecyclerView.ViewHolder holder = grid.findViewHolderForAdapterPosition(pos);
-        if (holder == null) return null;
-        View tile = holder.itemView;
-        if (tile.getWidth() <= 0 || tile.getHeight() <= 0) return null;
-        int[] at = new int[2];
-        tile.getLocationOnScreen(at);
-        return new Rect(at[0], at[1], at[0] + tile.getWidth(), at[1] + tile.getHeight());
+        Rect r = rectAt(adapter.positionOfFolder(uid));
+        return r != null ? r : focusedTileRect();
     }
 
     /**
@@ -2295,6 +2345,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * be a flat grey box snapping into glass.
      */
     private void frostPanel(final View panel, final float radiusDp, final Runnable then) {
+        frostPanel(panel, radiusDp, 0f, then);
+    }
+
+    /**
+     * Frosted background captured from the slice of Home under the panel. {@code tint} (0..1) lays a
+     * uniform ink wash over the frost — left at 0 the panel is the bright, untinted glass used by
+     * the control centre; a small value keeps white labels readable over a bright wallpaper.
+     */
+    private void frostPanel(final View panel, final float radiusDp, final float tint, final Runnable then) {
         final int[] attempts = {0};
         panel.post(new Runnable() {
             @Override
@@ -2316,7 +2375,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Bitmap shot = Frost.ofRegion(root, where, 0.34f, 4);
                     if (folderScrim != null) folderScrim.setAlpha(scrimAlpha);
                     if (shot != null) {
-                        panel.setBackground(new FrostDrawable(shot, radiusDp * density, density));
+                        panel.setBackground(new FrostDrawable(shot, radiusDp * density, density, tint));
                     }
                     if (then != null) then.run();
                 } else if (attempts[0]++ < 6) {

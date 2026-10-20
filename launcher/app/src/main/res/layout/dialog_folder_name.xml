@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@drawable/input_row_bg"
     android:paddingStart="26dp"
     android:paddingEnd="26dp"
     android:paddingTop="22dp"

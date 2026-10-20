@@ -460,7 +460,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         return "f" + n;
     }
 
-    /** The folder's tile: its name, a 2x2 picture of the apps inside it, and those apps as children. */
+    /** The folder's tile: its name, a row picture of the apps inside it, and those apps as children. */
     private Entry folderEntry(Config.Slot slot, List<Entry> members) {
         List<Entry> kids = new ArrayList<>(members);
         Collections.sort(kids, tileOrder);
@@ -471,7 +471,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             // A private copy: setting bounds on the icon an app tile shows would move that tile's icon.
             icons.add(d.getConstantState() != null ? d.getConstantState().newDrawable().mutate() : d);
         }
-        Drawable picture = new FolderIcon(icons, kids.size());
+        Drawable picture = new FolderIcon(icons);
         // A folder created before the tile was renamed still carries the old default in the saved
         // layout; the name the resource holds wins over that leftover, while a name the owner typed
         // in is left alone.
@@ -547,7 +547,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.icon.setImageDrawable(e.icon);
             h.icon.setVisibility(View.VISIBLE);
             h.label.setText(e.label);
-            // A folder fills the whole tile with its 2x2 picture, so the in-tile label would sit on
+            // A folder fills the whole tile with its row of apps, so the in-tile label would sit on
             // top of it; the label under the tile (above) already names the folder.
             h.label.setVisibility(e.kind == Entry.FOLDER ? View.GONE : View.VISIBLE);
         }
@@ -564,22 +564,27 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     /**
      * The icon slot's size. A single icon gets the 48dp slot above the in-tile label; a folder's
-     * 2x2 picture uses nearly the whole tile, and its label is hidden (see onBindViewHolder), so the
-     * slot can grow and drop the bottom margin the label needs.
+     * row of apps spreads across the tile, and its label is hidden (see onBindViewHolder), so the
+     * slot grows to the wide area of the card and drops the bottom margin the label needs.
      */
     private void bindIconSlot(Holder h, Entry e) {
         float density = ctx.getResources().getDisplayMetrics().density;
         boolean folder = e.kind == Entry.FOLDER;
-        int want = folder
-                ? Math.min(h.tileW - Math.round(10 * density), Math.round(76 * density))
-                : Math.round(48 * density);
+        int wantW, wantH;
+        if (folder) {
+            wantW = h.tileW - Math.round(20 * density);
+            wantH = Math.min(tileHeightPx(h.tileW) - Math.round(16 * density),
+                    Math.round(84 * density));
+        } else {
+            wantW = wantH = Math.round(48 * density);
+        }
         int bottom = folder ? 0 : Math.round(14 * density);
         ViewGroup.LayoutParams lp = h.icon.getLayoutParams();
         if (lp instanceof FrameLayout.LayoutParams) {
             FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) lp;
-            if (flp.width == want && flp.height == want && flp.bottomMargin == bottom) return;
+            if (flp.width == wantW && flp.height == wantH && flp.bottomMargin == bottom) return;
         }
-        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(want, want);
+        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(wantW, wantH);
         flp.gravity = Gravity.CENTER;
         flp.bottomMargin = bottom;
         h.icon.setLayoutParams(flp);

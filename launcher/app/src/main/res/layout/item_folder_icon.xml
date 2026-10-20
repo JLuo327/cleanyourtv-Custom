@@ -11,7 +11,7 @@
     android:gravity="center"
     android:paddingStart="4dp"
     android:paddingEnd="4dp"
-    android:background="@drawable/input_row_bg"
+    android:background="@drawable/folder_cell_bg"
     android:focusable="true"
     android:clickable="true">
 

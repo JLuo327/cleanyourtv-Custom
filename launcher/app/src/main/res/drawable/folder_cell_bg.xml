@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One app inside an open folder. Deliberately nothing behind it: idle and focused are the same
+     fully transparent cell, so selecting an app (which still springs larger, see MainActivity's
+     onFocusChangeListener) never paints a plate, a ring or any tint over the artwork. The frost on
+     the panel is the only backdrop; the item reads on it because of the scale-up on focus, not a
+     background change. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+</selector>
