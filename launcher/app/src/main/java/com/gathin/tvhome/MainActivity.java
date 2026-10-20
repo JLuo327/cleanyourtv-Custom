@@ -2271,6 +2271,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * made row two's menu sit a different distance from its tile than row one's; one offset for the
      * whole grid is what makes the panel read as growing out of the tile on every row.</p>
      *
+     * <p>Every column gets the same slide too. The right-most column used to flip its panel to the
+     * LEFT of the tile (two icon widths back) whenever the panel would have run past the screen
+     * margin, which made that one column's menu sit on the opposite side of its tile from every
+     * other app on screen. Nothing flips horizontally any more: the final clamp to the screen
+     * margin is the only guard, and on the last column that costs a handful of pixels — far less
+     * than the jarring side-switch it replaced.</p>
+     *
      * <p>Every edge meets its tile edge flush (gap 0), not floating a few pixels off it. A flip
      * keeps the panel on screen when there is no room above, and a panel wider than the room left
      * of the tile slides to the screen margin instead of hanging off the left edge.
@@ -2281,7 +2288,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int icon = (int) (48 * density);
         int nudge = icon * 2 / 3;                       // the slimmer menu sits 2/3 icon left
         int slide = icon * 2 - nudge;                  // every row: two icons right, minus nudge
-        int back = icon * 2;                            // two app-icon widths left (last column)
         int screenW = root.getWidth();
         int screenH = root.getHeight();
         int x;
@@ -2290,10 +2296,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             x = tile.right - width + gap + slide;       // right edges line up, then the slide
             y = tile.top - height - gap;                // every row: bottom edge flush above tile
             if (y < margin) y = tile.bottom + gap;      // no room above: open downwards
-            if (x > screenW - margin - width) {
-                x = tile.right - width + gap - back;    // right-most column: two icons left instead
-            }
-            if (x < margin) x = margin;                 // wider than the room to the left
         } else {
             x = screenW - margin - width;               // unknown tile: top right, clear of the pills
             y = (int) (150 * density);
