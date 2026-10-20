@@ -2170,7 +2170,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // still reads as glass, not as a slab. No drop shadow (elevation 0) — that was the floaty
         // halo the bare version was asked to drop.
         panel.setElevation(0f);
-        int[] spot = spotNearTile(tileRect(tilePosition), popup.getWidth(), panel.getMeasuredHeight());
+        int[] spot = spotNearTile(tileRect(tilePosition), popup.getWidth(), panel.getMeasuredHeight(), tilePosition);
         popup.showAtLocation(root, Gravity.NO_GRAVITY, spot[0], spot[1]);
         frostPanel(panel, 12f, 0.22f, null);
         panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180)
@@ -2222,35 +2222,54 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Hugging the corner keeps the panel's whole bottom edge right above the tile, the way a tvOS
      * menu grows out of the icon it belongs to.
      *
-     * <p>Two flips keep the panel on screen: no room above opens it downwards (its top-right
-     * corner at the tile's bottom-right), and a panel wider than the room left of the tile slides
-     * to the screen margin instead of hanging off the left edge.
+     * <p>The row the tile sits on decides both the slide and the direction:</p>
+     * <ul>
+     *   <li><b>Dock row</b> (position &lt; COLUMNS): the panel slides two icon widths right (one
+     *   less than the grid's three) and opens UPWARDS, its bottom edge flush with the tile's top
+     *   edge — zero gap, the way a tvOS menu grows out of the icon it belongs to.</li>
+     *   <li><b>Bottom grid row</b> (last visible row above the dock): the mirror image — one icon
+     *   width to the LEFT, opening DOWNWARDS with its top edge flush against the tile's bottom
+     *   edge, so the panel reaches into the open space below instead of covering the dock.</li>
+     *   <li><b>Every other row</b>: three icon widths right, opening upwards.</li>
+     * </ul>
      *
-     * <p>Every panel also slides three app-icon widths to the RIGHT of the tile it came from, so it
-     * reads as unfolding out of that tile's top-right corner rather than hanging over the next
-     * column. The right-most column has no room for that — there the panel slides two icon widths
-     * to the LEFT instead of clamping against the screen edge, which keeps the last column's menu
-     * clear of the bezel.
+     * <p>Every edge meets its tile edge flush (gap 0), not floating a few pixels off it. Two flips
+     * keep the panel on screen: a direction with no room falls back to the other one, and a panel
+     * wider than the room left of the tile slides to the screen margin instead of hanging off the
+     * left edge.
      */
-    private int[] spotNearTile(Rect tile, int width, int height) {
+    private int[] spotNearTile(Rect tile, int width, int height, int position) {
         int margin = (int) (22 * density);
-        int gap = (int) (10 * density);
-        int shift = (int) (48 * density) * 3;              // three app-icon widths right
-        int back = (int) (48 * density) * 2;               // two app-icon widths left (last column)
+        int gap = 0;                                     // flush: the panel edge meets the tile edge
+        int icon = (int) (48 * density);
+        int shift = icon * 3;                           // three app-icon widths right (grid rows)
+        int dockShift = icon * 2;                       // dock row: one less to the right
+        int bottomShift = -icon;                        // bottom grid row: one icon width LEFT
+        int back = icon * 2;                            // two app-icon widths left (last column)
         int screenW = root.getWidth();
         int screenH = root.getHeight();
         int x;
         int y;
         if (tile != null) {
-            x = tile.right - width + gap + shift;          // right edges line up, then three icons right
-            y = tile.top - height - gap;                    // bottom edge just above the tile
-            if (y < margin) y = tile.bottom + gap;          // no room above: open downwards
-            if (x > screenW - margin - width) {
-                x = tile.right - width + gap - back;      // right-most column: two icons left instead
+            boolean dockRow = position >= 0 && position < COLUMNS;
+            boolean bottomRow = !dockRow && tile.bottom > screenH * 0.52f;
+            int slide = dockRow ? dockShift : (bottomRow ? bottomShift : shift);
+            x = tile.right - width + gap + slide;       // right edges line up, then the slide
+            if (bottomRow) {
+                y = tile.bottom + gap;                  // bottom row: open downwards, flush below
+                if (y + height > screenH - margin) {
+                    y = tile.top - height - gap;        // no room below: back up above
+                }
+            } else {
+                y = tile.top - height - gap;            // grid and dock: bottom edge flush above tile
+                if (y < margin) y = tile.bottom + gap;  // no room above: open downwards
             }
-            if (x < margin) x = margin;                     // wider than the room to the left
+            if (x > screenW - margin - width) {
+                x = tile.right - width + gap - back;    // right-most column: two icons left instead
+            }
+            if (x < margin) x = margin;                 // wider than the room to the left
         } else {
-            x = screenW - margin - width;                   // unknown tile: top right, clear of the pills
+            x = screenW - margin - width;               // unknown tile: top right, clear of the pills
             y = (int) (150 * density);
         }
         x = Math.min(x, Math.max(margin, screenW - margin - width));
@@ -2331,7 +2350,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     /** Top-left corner for the folder panel: up and to the right of the folder tile it came from. */
     private int[] folderSpot(String uid, int width, int height) {
-        return spotNearTile(folderTileRect(uid), width, height);
+        return spotNearTile(folderTileRect(uid), width, height, adapter.positionOfFolder(uid));
     }
 
     private void showFolderScrim() {
