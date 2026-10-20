@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Frosted glass, without the rim. Every tile used to carry a 1dp white hairline whether or not it
+     had focus, and a screenful of hairlines is a screenful of rectangles: the grid read as a wall of
+     cards instead of as a shelf of apps. tvOS draws no border at all — the artwork is the shape.
+
+     What is left is the sheen alone: a light wash at the top fading to nearly clear at the bottom.
+     That still separates a tile from the wallpaper, but the edge is soft and the eye stops counting
+     boxes. Radius is 18dp to match the outline AppAdapter clips to. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#FF1C1C1E" />
-    <corners android:radius="16dp" />
+    <gradient
+        android:angle="90"
+        android:startColor="#5CFFFFFF"
+        android:endColor="#26FFFFFF" />
+    <corners android:radius="18dp" />
 </shape>

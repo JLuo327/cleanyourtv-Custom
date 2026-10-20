@@ -11,13 +11,13 @@ import androidx.annotation.NonNull;
 /**
  * The green "VPN" capsule drawn inside the network pill while a VPN is up: a lock and the word VPN, dark on
  * green, so it reads on both the frosted and the focused (white) pill. With a VPN app configured and no VPN
- * up, the same capsule turns red, without the lock, so a dropped VPN is noticed.
+ * up, the same capsule turns gray, without the lock, so a dropped VPN is noticed.
  */
 final class VpnBadge extends ReplacementSpan {
 
     private static final int GREEN = 0xFF30D158;
     private static final int INK = 0xFF06290F;
-    private static final int RED = 0xFFFF453A;
+    private static final int GRAY = 0xFF8E8E93;
     private static final int INK_OFF = 0xFFFFFFFF;
 
     private final Drawable lock;
@@ -25,12 +25,20 @@ final class VpnBadge extends ReplacementSpan {
     private final int fill, ink;
     private final RectF rect = new RectF();
 
-    /** @param lock the lock icon for the "up" badge, or null for the red "off" badge */
+    /** @param lock the lock icon for the "up" badge, or null for the gray "off" badge */
     VpnBadge(Drawable lock, float density) {
-        this.fill = lock != null ? GREEN : RED;
+        this.fill = lock != null ? GREEN : GRAY;
         this.ink = lock != null ? INK : INK_OFF;
         this.lock = lock != null ? lock.mutate() : null;
         if (this.lock != null) this.lock.setTint(ink);
+        this.density = density;
+    }
+
+    /** A plain coloured "VPN" capsule: green while up, gray while down, no lock icon. */
+    VpnBadge(int fill, float density) {
+        this.fill = fill;
+        this.ink = fill == GREEN ? INK : INK_OFF;
+        this.lock = null;
         this.density = density;
     }
 
@@ -68,6 +76,9 @@ final class VpnBadge extends ReplacementSpan {
         rect.set(left, cy - h / 2f, right, cy + h / 2f);
 
         int oldColor = paint.getColor();
+        // Flat, never raised: the paint arrives from the pill's TextView, and any shadow layer on it
+        // would draw a dark halo around the capsule so the badge looked like it floated off the pill.
+        paint.setShadowLayer(0f, 0f, 0f, 0);
         paint.setColor(fill);
         c.drawRoundRect(rect, h / 2f, h / 2f, paint);
 

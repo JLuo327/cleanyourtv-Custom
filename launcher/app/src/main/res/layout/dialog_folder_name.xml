@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Renaming a folder: the current name in an editable field, with Save and Cancel under it. The
+     field comes up with its text selected, so typing replaces the name instead of appending to it. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/input_row_bg"
+    android:paddingStart="26dp"
+    android:paddingEnd="26dp"
+    android:paddingTop="22dp"
+    android:paddingBottom="20dp">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="#FFFFFFFF"
+        android:textSize="22sp"
+        android:fontFamily="@font/inter_medium"
+        android:letterSpacing="-0.01" />
+
+    <EditText
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/input_box_bg"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:textColor="#FFFFFFFF"
+        android:textColorHint="#80FFFFFF"
+        android:textSize="18sp"
+        android:fontFamily="@font/inter_medium"
+        android:gravity="center_vertical"
+        android:singleLine="true"
+        android:selectAllOnFocus="true"
+        android:inputType="text"
+        android:imeOptions="actionDone"
+        android:focusable="true"
+        android:focusableInTouchMode="true" />
+
+    <LinearLayout
+        android:id="@+id/keys"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <TextView
+            android:id="@+id/btnCancel"
+            style="@style/TopButton"
+            android:text="@string/rename_cancel"
+            android:nextFocusUp="@+id/name"
+            android:nextFocusDown="@+id/name"
+            android:nextFocusLeft="@+id/btnCancel"
+            android:nextFocusRight="@+id/btnSave" />
+
+        <TextView
+            android:id="@+id/btnSave"
+            style="@style/TopButton"
+            android:text="@string/rename_save"
+            android:nextFocusUp="@+id/name"
+            android:nextFocusDown="@+id/name"
+            android:nextFocusLeft="@+id/btnCancel"
+            android:nextFocusRight="@+id/btnSave" />
+    </LinearLayout>
+</LinearLayout>

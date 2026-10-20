@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App info: a solid disc with the i knocked out (SF Symbols info.circle.fill). A ring with a
+     hairline stem was the least legible icon in the set — at 23dp the stem vanished. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp" android:height="22dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z M12.95,17.2 H11.05 V10.9 H12.95 Z M12.95,9.3 H11.05 V7.4 H12.95 Z" />
+</vector>

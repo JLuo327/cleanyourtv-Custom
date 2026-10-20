@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Control centre: a framed 2x2 grid on one glass slab.
+
+     It came down from a single horizontal row because four wide tiles in a line read as a toolbar,
+     not as a control centre. The panel is now a grid, every cell is framed, and the slab carries a
+     heavier rim than any other surface — that is the "框" in 有框的宫格.
+
+     Rows are built in code (addSystemTile) because the tile count changes with the module-card
+     switch: four controls normally, five when module cards are enabled. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/panel"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/control_panel_bg"
+    android:padding="12dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <LinearLayout
+        android:id="@+id/grid"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false" />
+</LinearLayout>

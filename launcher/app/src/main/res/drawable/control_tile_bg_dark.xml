@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One cell of the control-centre grid. Every cell is framed, because that is what the user asked
+     for and what makes a 2x2 block read as a grid of switches instead of four loose squares: a 1dp
+     30% ink rim when idle, a 2dp 90% white rim when focused, on the same 16dp corner as the panel's
+     inner radius.
+
+     The fill is ink, not light. While the panel sat darker than Home a translucent white wash was
+     the right choice; on glass that is brighter than the desktop (see FrostDrawable) white-on-white
+     erases both the frame and the white label. The wash is heavy enough to give the glyph and the
+     label a floor to read against, and light enough that the cell is still glass rather than a card
+     — the panel as a whole still sits above the desktop. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#4D000000" />
+            <stroke android:width="2dp" android:color="#E6FFFFFF" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#52000000" />
+            <stroke android:width="1dp" android:color="#66000000" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+</selector>

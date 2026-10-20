@@ -9,20 +9,23 @@
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
-        <item>com.netflix.ninja</item>
-        <item>com.amazon.amazonvideo.livingroom</item>
-        <item>com.google.android.youtube.tv</item>
-        <item>in.startv.hotstar</item>
+        <item>org.smarttube.stable</item>
+        <item>com.follow.clash</item>
+        <item>org.telegram.messenger.web</item>
+        <item>com.android.chrome</item>
     </string-array>
 
     <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
     <string-array name="hidden_apps">
-        <item>com.mediatek.wwtv.tvcenter</item>
-        <item>com.mitv.gallery</item>
+        <item>com.oversea.aslauncher</item>
+        <item>eu.chainfire.supersu</item>
+        <item>com.obe.wizard</item>
+        <item>com.yunos.tv.factorytest</item>
+        <item>com.android.shell</item>
     </string-array>
 
     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
-    <string name="live_tv_package" translatable="false">com.mediatek.wwtv.tvcenter</string>
+    <string name="live_tv_package" translatable="false">com.android.tv</string>
 
     <!-- Some TVs give their Live TV app no leanback entry point at all, so `live_tv_package` above
          resolves to nothing (TCL Android TV 9 on China-market sets is one). This action is then sent
@@ -59,7 +62,7 @@
     <!-- Optional VPN app the network pill opens (hold the pill for Wi-Fi settings), e.g. the package of the
          VPN you use. Empty: the pill opens Wi-Fi settings. The green VPN badge shows for any VPN either way;
          with an app set here, a red "VPN off" badge also shows while no VPN is up. -->
-    <string name="vpn_app" translatable="false"></string>
+    <string name="vpn_app" translatable="false">com.follow.clash</string>
     <!-- Grid rows left visible under the dock on the home screen. 0 = dock sits at the very bottom. -->
     <integer name="rows_below_dock">0</integer>
 
@@ -78,6 +81,11 @@
     <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own
          label, caption and glow colour, once you answer Show on the prompt. false: never look for cards or ask. -->
     <bool name="module_cards">true</bool>
+
+    <!-- Local status cards under the clock: internal storage free, RAM used, and removable (USB/SD)
+         free when present. The launcher has no network permission, so these are device-local only —
+         no weather or online info. false hides the row. Also "info_cards": in a theme's config.json. -->
+    <bool name="info_cards">true</bool>
 
     <!-- Reduced motion: for TVs whose GPU cannot keep up (MediaTek MT5895 on Android 10 is the known case).
          true keeps the GPU drawing path but calms the movement: a stiff highlight spring with no bounce,

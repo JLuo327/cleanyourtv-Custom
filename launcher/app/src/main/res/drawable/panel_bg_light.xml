@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same smoked glass over a bright wallpaper. Still dark: every panel here carries white type,
+     and the picture behind it is already dimmed and blurred by the scrim, so a lighter surface would
+     cost contrast without buying anything. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#CC15151B"
+                android:endColor="#B808080C" />
+            <stroke android:width="1.5dp" android:color="#38FFFFFF" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#12FFFFFF"
+                android:endColor="#00FFFFFF" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+</layer-list>

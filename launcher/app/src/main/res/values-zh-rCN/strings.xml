@@ -5,9 +5,37 @@
     <string name="wifi">无线网络</string>
     <string name="settings">设置</string>
     <string name="home_settings">选择默认桌面</string>
+    <string name="folder_default_name">工具</string>
+    <string name="folder_count">%1$s · %2$d 个应用</string>
+    <string name="folder_add">添加应用</string>
+    <string name="folder_remove">移出应用</string>
+    <string name="folder_nothing_to_add">没有可添加的应用了</string>
+    <string name="folder_new">新建文件夹</string>
+    <string name="folder_new_name">文件夹 %1$d</string>
+    <string name="folder_delete">删除文件夹</string>
+    <string name="folder_rename">重命名</string>
+    <string name="rename_title">重命名文件夹</string>
+    <string name="rename_hint">文件夹名称</string>
+    <string name="rename_save">保存</string>
+    <string name="rename_cancel">取消</string>
+    <string name="rename_empty">请先输入文件夹名称</string>
+    <string name="rename_space">空格</string>
+    <string name="folder_none">还没有文件夹：在应用上长按 OK 就能新建</string>
+    <string name="folder_entry">%1$s · %2$d 个应用</string>
+    <string name="tile_move">移动位置</string>
+    <string name="tile_replace">替换…</string>
+    <string name="tile_move_to">移动到</string>
+    <string name="tile_remove">删除</string>
+    <string name="add_apps">添加应用</string>
+    <string name="nothing_hidden">没有可添加的应用</string>
+    <string name="removed_hint">已从桌面移除 · 可在「添加应用」中找回</string>
+    <string name="tile_info">应用信息</string>
+    <string name="move_hint">方向键移动 · OK 放下 · 放到文件夹上就移进去 · 返回取消</string>
     <string name="home_settings_help">选择原始桌面即可关闭简洁桌面的默认桌面状态；需要切回时选择简洁桌面。原始桌面必须仍处于启用状态；若安装脚本已停用它，请先用恢复脚本启用。电视还须提供系统桌面选择页。</string>
-    <string name="launcher_settings">简洁桌面设置</string>
+    <string name="launcher_settings">桌面设置</string>
     <string name="columns_label">每行应用数量</string>
+    <string name="motion_label">动态效果</string>
+    <string name="appearance_label">外观</string>
     <string name="animations_state">动态效果：%1$s</string>
     <string name="advanced_effects">高级动态效果</string>
     <string name="advanced_effects_state">高级动态效果：%1$s</string>
@@ -34,4 +62,63 @@
     <string name="cant_open">无法打开 %1$s</string>
     <string name="date_format">M月d日 EEEE</string>
     <string name="dream_name">时钟</string>
+
+    <string name="wallpaper">壁纸</string>
+    <string name="wallpaper_hint">选中即生效。想用自己的照片，把它放进电视的「图片」或「下载」文件夹，这里就会列出来。亮图和暗图都能用，文字颜色会自动跟着变。</string>
+    <string name="wallpaper_none">纯黑</string>
+    <string name="wallpaper_none_detail">不画壁纸，只有黑色底</string>
+    <string name="wallpaper_built_in">内置 · 1920×1080</string>
+    <string name="wallpaper_on_device">来自 %1$s 文件夹</string>
+    <string name="wallpaper_cleared">已恢复纯黑</string>
+    <string name="wallpaper_failed">设置失败：%1$s</string>
+    <string name="wallpaper_sunrise">云海日出</string>
+    <string name="wallpaper_summit">群山云海</string>
+    <string name="wallpaper_forest">林间碧湖</string>
+    <string name="wallpaper_valley">晨光山谷</string>
+    <string name="wallpaper_balloons">热气球</string>
+    <string name="wallpaper_blocks">蓝色矩阵</string>
+    <string name="wallpaper_lake">晨雾湖畔</string>
+    <string name="wallpaper_moraine">梦莲湖</string>
+    <string name="wallpaper_bloom">橙莲花</string>
+    <string name="wallpaper_lilac">紫莲花</string>
+
+    <!-- 时钟下方的本地状态卡片（仅限设备本身，launcher 无网络权限）。 -->
+    <string name="info_storage">存储剩 %1$s</string>
+    <string name="info_mem">内存占用 %1$d%%</string>
+    <string name="info_external">可移动 %1$s 可用</string>
+    <string name="info_net">下行 %1$s · 上行 %2$s</string>
+    <string name="info_net_rate">%1$s/s</string>
+
+    <!-- 内置模块：launcher 自己的胶囊，列在第三方卡片之前。 -->
+    <string name="module_storage">存储空间</string>
+    <string name="module_storage_caption">内置存储的剩余空间</string>
+    <string name="module_memory">内存占用</string>
+    <string name="module_memory_caption">内存已用百分比</string>
+    <string name="module_external">可移动存储</string>
+    <string name="module_external_caption">接入 U 盘或 SD 卡时显示其剩余空间</string>
+    <string name="module_netspeed">网络速率</string>
+    <string name="module_netspeed_caption">桌面显示期间每两秒采样一次</string>
+    <string name="module_state_on">已开启</string>
+    <string name="module_state_off">已关闭</string>
+
+    <!-- 模块卡片面板与卡片确认框。 -->
+    <string name="module_cards">模块卡片</string>
+    <string name="no_module_cards">没有已安装的模块卡片</string>
+    <string name="card_app_name">应用：%1$s</string>
+    <string name="card_state_shown">已显示</string>
+    <string name="card_state_over_limit">已显示，超出 8 张上限</string>
+    <string name="card_state_hidden">已隐藏</string>
+    <string name="card_state_new">新增</string>
+    <string name="card_state_new_key">签名变更</string>
+    <string name="card_state_new_label">名称变更</string>
+    <string name="card_prompt_title">%1$s 的新卡片</string>
+    <string name="card_prompt_body">%1$s 想在桌面上显示一张卡片。保持隐藏的话，它原来的图标不受影响。</string>
+    <string name="card_prompt_names">卡片名为「%1$s」，应用名为「%2$s」。</string>
+    <string name="card_prompt_resigned">%1$s 用不同的签名密钥更新了，你之前的选择不再适用，请重新决定它的卡片。</string>
+    <string name="card_prompt_relabelled">%1$s 在你上次决定之后改了卡片名，请重新决定。</string>
+    <string name="card_prompt_hint">之后可以改：长按设置键的 OK，然后选「模块卡片」。</string>
+    <string name="card_prompt_identity">%1$s，密钥 %2$s</string>
+    <string name="card_keep_hidden">保持隐藏</string>
+    <string name="card_show">显示卡片</string>
+    <string name="card_not_saved">选择没能保存</string>
 </resources>

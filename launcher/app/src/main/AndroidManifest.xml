@@ -9,11 +9,18 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- The wallpaper picker lists pictures the user put in Pictures/Download/DCIM. Asked for at runtime
+         and degrading to the bundled wallpapers only when it is refused. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
          runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
          FINE" rule does not apply here. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
         tools:ignore="CoarseFineLocation" />
+    <!-- "Delete" on a tile menu asks the system to uninstall the app. Without this the package
+         installer refuses the request outright (UninstallerActivity: "Uid ... does not have
+         android.permission.REQUEST_DELETE_PACKAGES") and the dialog never appears. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
@@ -21,6 +28,11 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+        </intent>
+        <!-- Phone apps that only declare the plain LAUNCHER category (Telegram, Chrome) are listed too. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
         </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -61,6 +73,11 @@
 
         <activity
             android:name=".LauncherSettingsActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".WallpaperPickerActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape" />

@@ -23,9 +23,40 @@
     <string name="vpn">VPN</string>
     <string name="vpn_off">VPN off</string>
     <string name="home_settings">Choose default home</string>
+    <!-- The owner's TV runs in Chinese and asked for this tile to read 工具; the default locale
+         carries the same name so the folder never falls back to "Tools" on a device whose locale
+         does not match a translation. -->
+    <string name="folder_default_name">工具</string>
+    <string name="folder_count">%1$s · %2$d apps</string>
+    <string name="folder_add">Add app</string>
+    <string name="folder_remove">Remove app</string>
+    <string name="folder_nothing_to_add">No app left to add</string>
+    <string name="folder_new">New folder</string>
+    <string name="folder_new_name">Folder %1$d</string>
+    <string name="folder_delete">Delete folder</string>
+    <string name="folder_rename">Rename</string>
+    <string name="rename_title">Rename folder</string>
+    <string name="rename_hint">Folder name</string>
+    <string name="rename_save">Save</string>
+    <string name="rename_cancel">Cancel</string>
+    <string name="rename_empty">Give the folder a name first</string>
+    <string name="rename_space">Space</string>
+    <string name="folder_none">No folder yet: hold OK on an app to make one</string>
+    <string name="folder_entry">%1$s · %2$d apps</string>
+    <string name="tile_move">Move</string>
+    <string name="tile_replace">Swap with…</string>
+    <string name="tile_move_to">Move to</string>
+    <string name="tile_remove">Delete</string>
+    <string name="add_apps">Add apps</string>
+    <string name="nothing_hidden">No app to add back</string>
+    <string name="removed_hint">Removed from Home · add it back from \"Add apps\"</string>
+    <string name="tile_info">App info</string>
+    <string name="move_hint">D-pad walks · OK drops it · drop on a folder to move it in · Back cancels</string>
     <string name="home_settings_help">Select your original home to stop using CleanYourTV as Home, or CleanYourTV to switch back. The original launcher must be enabled and your TV must provide a home picker; use the restore script first if it was disabled.</string>
-    <string name="launcher_settings">Launcher settings</string>
+    <string name="launcher_settings">Home settings</string>
     <string name="columns_label">Apps per row</string>
+    <string name="motion_label">Motion</string>
+    <string name="appearance_label">Appearance</string>
     <string name="animations_state">Animations: %1$s</string>
     <string name="advanced_effects">Advanced effects</string>
     <string name="advanced_effects_state">Advanced effects: %1$s</string>
@@ -58,4 +89,42 @@
     <string name="card_state_new">New</string>
     <string name="card_state_new_key">New key</string>
     <string name="card_state_new_label">New name</string>
+
+    <string name="wallpaper">Wallpaper</string>
+    <string name="wallpaper_hint">Picking one applies it straight away. To use your own photo, drop it into the TV\'s Pictures or Download folder and it will appear here. Bright and dark pictures both work: the text colour follows the wallpaper.</string>
+    <string name="wallpaper_none">Black</string>
+    <string name="wallpaper_none_detail">No picture, just the black background</string>
+    <string name="wallpaper_built_in">Built in · 1920×1080</string>
+    <string name="wallpaper_on_device">From the %1$s folder</string>
+    <string name="wallpaper_cleared">Back to black</string>
+    <string name="wallpaper_failed">Could not set it: %1$s</string>
+    <string name="wallpaper_sunrise">Sunrise Peaks</string>
+    <string name="wallpaper_summit">Cloud Summits</string>
+    <string name="wallpaper_forest">Emerald Forest</string>
+    <string name="wallpaper_valley">Morning Valley</string>
+    <string name="wallpaper_balloons">Balloons</string>
+    <string name="wallpaper_blocks">Blue Matrix</string>
+    <string name="wallpaper_lake">Misty Lake</string>
+    <string name="wallpaper_moraine">Moraine Lake</string>
+    <string name="wallpaper_bloom">Amber Bloom</string>
+    <string name="wallpaper_lilac">Lilac Bloom</string>
+
+    <!-- Local status cards under the clock (device-only: the launcher has no network permission). -->
+    <string name="info_storage">Storage %1$s free</string>
+    <string name="info_mem">RAM %1$d%% used</string>
+    <string name="info_external">Removable %1$s free</string>
+    <string name="info_net">Down %1$s · Up %2$s</string>
+    <string name="info_net_rate">%1$s/s</string>
+
+    <!-- Built-in modules: the launcher's own pills, listed above the discovered cards. -->
+    <string name="module_storage">Storage</string>
+    <string name="module_storage_caption">Free space on internal storage</string>
+    <string name="module_memory">Memory</string>
+    <string name="module_memory_caption">RAM in use, as a percentage</string>
+    <string name="module_external">Removable storage</string>
+    <string name="module_external_caption">Free space on a USB or SD volume, when one is attached</string>
+    <string name="module_netspeed">Network speed</string>
+    <string name="module_netspeed_caption">Throughput, sampled every two seconds while Home is open</string>
+    <string name="module_state_on">On</string>
+    <string name="module_state_off">Off</string>
 </resources>

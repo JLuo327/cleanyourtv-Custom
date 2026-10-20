@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One app in an open folder. No plate and no ring: focus is the item lifting, the same way a
+     tile on the desktop shows it, so selecting an app never draws a box around the artwork.
+     The cell is exactly as tall as it is wide (112 x 112), which is what makes the panel itself
+     square: a 3x3 block of square cells plus even padding is a square, and the same holds for 2x2
+     and 4x4. The icon and its name are centred in that square rather than pinned to the top. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="112dp"
+    android:layout_height="112dp"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp"
+    android:background="@drawable/input_row_bg"
+    android:focusable="true"
+    android:clickable="true">
+
+    <ImageView
+        android:id="@+id/icon"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/label"
+        android:layout_width="match_parent"
+        android:layout_height="24dp"
+        android:layout_marginTop="7dp"
+        android:gravity="center_horizontal|top"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="@drawable/pill_text"
+        android:duplicateParentState="true"
+        android:textSize="13sp"
+        android:fontFamily="@font/inter_medium" />
+</LinearLayout>

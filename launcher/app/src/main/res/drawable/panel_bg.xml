@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The shared menu surface: smoked glass, not a black slab.
+
+     Two layers instead of one shape. The bottom is a translucent dark gradient (80% at the top edge
+     down to 72%) so the desktop still reads through the panel and the panel still reads as a
+     surface; the top layer is an 7% white sheen that fades out downwards, which is what a sheet of
+     frosted glass does when light hits its upper edge. A 1.5dp 22% rim keeps the outline crisp
+     against a bright sky.
+
+     The blur behind it is real, not implied: showFolderScrim() captures Home, blurs it, and puts it
+     under the panel, so what shows through the 72-80% glass is soft colour rather than sharp tiles.
+     That is the difference between "毛玻璃" and "半透明黑块". -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#CC15151B"
+                android:endColor="#B808080C" />
+            <stroke android:width="1.5dp" android:color="#38FFFFFF" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#12FFFFFF"
+                android:endColor="#00FFFFFF" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+</layer-list>

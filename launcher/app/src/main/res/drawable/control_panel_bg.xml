@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The control-centre slab. It has to read as a framed grid now, so it gets the heaviest rim in the
+     set (1.5dp at 28% white) and a 24dp radius, while keeping the same translucent glass as every
+     other panel: the blurred Home behind it shows through the 78-70% gradient, so the drop-down is
+     visibly a layer on top of Home rather than a black box parked over it. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#C8171720"
+                android:endColor="#B40A0A10" />
+            <stroke android:width="1.5dp" android:color="#47FFFFFF" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#14FFFFFF"
+                android:endColor="#00FFFFFF" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+</layer-list>

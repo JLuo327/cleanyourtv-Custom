@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- A row inside a menu. The panel is now transparent (no frost), so each row carries its own ink
+     the way the control-centre cells do: a quiet fill the white label can stand against on any
+     wallpaper, and a brighter fill plus a white ring when focused. The panel never breaks up into
+     a slab; it just holds inked rows that float on the desktop. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#F5FFFFFF" />
+            <solid android:color="#4D000000" />
+            <stroke android:width="1.5dp" android:color="#B3FFFFFF" />
             <corners android:radius="13dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#00000000" />
+            <solid android:color="#38000000" />
             <corners android:radius="13dp" />
         </shape>
     </item>

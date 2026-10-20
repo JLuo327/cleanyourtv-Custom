@@ -9,7 +9,12 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-/** Draws the tvOS style lighter band behind the first (dock) row and adds a gap below it. */
+/**
+ * Draws the tvOS style lighter band behind the first (dock) row and adds a gap below it.
+ *
+ * <p>Light frosted glass rather than the stock near-black band: the tiles themselves are translucent
+ * white now, so a dark slab underneath would read as a hole punched in the wallpaper.
+ */
 public class DockDecoration extends RecyclerView.ItemDecoration {
 
     private final int dockSize;
@@ -21,10 +26,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     DockDecoration(int dockSize, float density) {
         this.dockSize = dockSize;
         this.density = density;
-        band.setColor(0xFF141416);
+        band.setColor(0x45FFFFFF);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
-        edge.setColor(0x1FFFFFFF);
+        edge.setColor(0x66FFFFFF);
     }
 
     @Override

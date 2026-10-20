@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same tile on a bright wallpaper: dark frosted glass, and focus only brightens the rim. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <gradient android:angle="270" android:startColor="#B3000000" android:endColor="#73000000" />
+            <stroke android:width="1.5dp" android:color="#CCFFFFFF" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:angle="270" android:startColor="#B3000000" android:endColor="#73000000" />
+            <stroke android:width="1dp" android:color="#3DFFFFFF" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+</selector>

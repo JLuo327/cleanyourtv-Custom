@@ -14,16 +14,18 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
-import android.provider.Settings;
+import android.net.Uri;import android.provider.Settings;
 import android.util.DisplayMetrics;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewConfiguration;
 import android.view.ViewOutlineProvider;
 import android.view.animation.DecelerateInterpolator;
-import android.view.animation.OvershootInterpolator;
+import android.view.animation.Interpolator;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -33,6 +35,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,10 +54,64 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         /** Called for a D-pad direction key on a tile. Return true when handled (focus stays put). */
         boolean onTileVerticalKey(int position, int keyCode);
+
+        /** Called when a folder tile is clicked: Home opens a panel with the apps inside it. */
+        void onFolderOpen(Entry folder);
+
+        /** Called on OK before a tile activates. Return true to keep it from launching. */
+        boolean onTileActivated(Entry tile);
+
+        /** Called on a long OK: Home opens the tile's own menu. */
+        void onTileLongPress(int position);
+    }
+
+    /** One app that is off the home screen right now: its label and its artwork. */
+    static final class Ref {
+        final String pkg;
+        final String label;
+        final Drawable icon;
+
+        Ref(String pkg, String label, Drawable icon) {
+            this.pkg = pkg;
+            this.label = label;
+            this.icon = icon;
+        }
+    }
+
+    /**
+     * Replaces the set of apps kept off the home screen. Call before {@link #reload} so the grid
+     * reflects it, and after the set is written to disk.
+     */
+    void setTakenOff(Collection<String> pkgs) {
+        takenOff.clear();
+        if (pkgs != null) takenOff.addAll(pkgs);
+    }
+
+    /**
+     * Labels and artwork of the given packages, for the list that puts an app back. Apps that are
+     * no longer installed drop out, so the list never offers a dead row.
+     */
+    List<Ref> refsFor(Collection<String> pkgs) {
+        PackageManager pm = ctx.getPackageManager();
+        List<Ref> out = new ArrayList<>();
+        for (String pkg : pkgs) {
+            ResolveInfo ri = pm.resolveActivity(
+                    new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+                            .setPackage(pkg), 0);
+            if (ri == null || ri.activityInfo == null) {
+                ri = pm.resolveActivity(new Intent(Intent.ACTION_MAIN)
+                        .addCategory(Intent.CATEGORY_LAUNCHER).setPackage(pkg), 0);
+            }
+            if (ri == null || ri.activityInfo == null) continue;
+            out.add(new Ref(pkg, Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg),
+                    ri.loadIcon(pm)));
+        }
+        Collections.sort(out, (a, b) -> a.label.compareToIgnoreCase(b.label));
+        return out;
     }
 
     static final class Entry {
-        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2;
+        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, FOLDER = 3;
 
         final int kind;
         final String label;
@@ -66,12 +123,19 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final String name;
         /** Ambient glow colour; 0 until sampled from the banner, or the card's accent from the start. */
         int ambient;
+        /** The apps a folder stands in for, in dock order then by label; empty for any other kind. */
+        final List<Entry> children;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
-            this(APP, label, component, banner, icon, null, 0);
+            this(APP, label, component, banner, icon, null, 0, null);
         }
 
         Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent) {
+            this(kind, label, component, banner, icon, caption, accent, null);
+        }
+
+        Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon,
+              String caption, int accent, List<Entry> children) {
             this.kind = kind;
             this.label = label;
             this.component = component;
@@ -80,6 +144,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             this.icon = icon;
             this.name = caption == null ? label : label + " \u00B7 " + caption;
             this.ambient = accent;
+            this.children = children == null ? Collections.<Entry>emptyList()
+                    : Collections.unmodifiableList(children);
         }
     }
 
@@ -115,12 +181,30 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
+    /**
+     * Apps the owner took off the home screen from the tile menu. They are kept out of the grid
+     * on purpose: without this an app the layout no longer names would simply be appended again
+     * (see {@link #reload}) and the removal would look like it did nothing.
+     */
+    private final Set<String> takenOff = new HashSet<>();
+    /** Folders from config.json or the built-in default: they seed the first layout, then step aside. */
+    private final List<Config.Folder> folders;
+    /** The owner's tile order; null until the first reload builds one from {@link #folders}. */
+    private List<Config.Slot> layout;
     private final boolean animations;
     private final boolean advancedEffects;
     private final boolean showHomeSettings;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): no overshoot, shorter fades. */
     private final boolean reducedMotion;
     private final List<Entry> items = new ArrayList<>();
+    /** Dock order first, then cards before the alphabetical grid; shared with a folder's own children. */
+    private final java.util.Comparator<Entry> tileOrder;
+    /**
+     * Colour of the app name under a tile. The label sits on the wallpaper, not on the tile, so it has
+     * to follow the wallpaper's brightness the same way the clock does; Home pushes a new value here
+     * from applyContrast().
+     */
+    private int nameColor = 0xF2FFFFFF;
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
         this.ctx = ctx;
@@ -128,44 +212,14 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.dockSize = dockSize;
         this.favourites = cfg.dockApps;
         this.hidden = new HashSet<>(cfg.hiddenApps);
+        this.folders = cfg.folders;
+        this.layout = cfg.layout == null ? null : new ArrayList<>(cfg.layout);
         this.animations = cfg.animations;
         this.advancedEffects = cfg.animations && cfg.advancedEffects;
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
         this.reducedMotion = cfg.reducedMotion;
-        // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
-        // its view being rebound to whatever app now sits in that slot.
-        setHasStableIds(true);
-    }
-
-    /**
-     * Rebuilds the tiles. A shown module card stands in for every tile of its package (same component,
-     * so focus follows it); hidden_apps wins over a card, and a card's package in dock_apps takes that slot.
-     */
-    void reload(List<Cards.Card> cards) {
-        PackageManager pm = ctx.getPackageManager();
-        Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
-        Map<String, Cards.Card> cardByPkg = new HashMap<>();
-        for (Cards.Card c : cards) cardByPkg.put(c.pkg, c);
-        List<Entry> fresh = new ArrayList<>();
-        for (ResolveInfo ri : found) {
-            if (ri.activityInfo == null) continue;
-            String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
-            ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
-            Cards.Card card = cardByPkg.get(pkg);
-            if (card != null && !card.component.equals(component)) continue;   // the card stands in for this tile
-            Drawable banner = loadBanner(pm, ri);
-            Drawable icon = ri.loadIcon(pm);
-            if (card != null) {
-                fresh.add(new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent));
-            } else {
-                // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
-                // redraw the tile name as something else (#117).
-                fresh.add(new Entry(Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg), component, banner, icon));
-            }
-        }
-        Collections.sort(fresh, (a, b) -> {
+        // Assigned here, not as a field initializer: it reads favourites, which is still unset then.
+        this.tileOrder = (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
             if (fa >= 0 || fb >= 0) {
                 if (fa < 0) return 1;
@@ -176,7 +230,87 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             boolean ca = a.kind == Entry.CARD, cb = b.kind == Entry.CARD;
             if (ca != cb) return ca ? -1 : 1;
             return a.label.compareToIgnoreCase(b.label);
-        });
+        };
+        // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
+        // its view being rebound to whatever app now sits in that slot.
+        setHasStableIds(true);
+    }
+
+    /**
+     * Recolour the labels under the tiles, for a wallpaper the white type would disappear into.
+     * Rebind instead of notifyDataSetChanged so focus and the spring highlight stay where they are.
+     */
+    void setNameColor(int color) {
+        if (nameColor == color) return;
+        nameColor = color;
+        notifyItemRangeChanged(0, getItemCount(), "nameColor");
+    }
+
+    /**
+     * Rebuilds the tiles from the owner's layout. A shown module card stands in for every tile of
+     * its package (same component, so focus follows it) and hidden_apps wins over a card.
+     *
+     * <p>Order comes from {@link #layout} alone: an app slot takes its app, a folder slot takes the
+     * apps inside it, and anything the layout does not name — a fresh install — is appended
+     * alphabetically after them. Because the dock is simply the first {@code dockSize} positions,
+     * moving an app to the front of the layout is all it takes to pin it there.
+     */
+    void reload(List<Cards.Card> cards) {
+        PackageManager pm = ctx.getPackageManager();
+        // Android TV apps declare LEANBACK_LAUNCHER; phone apps such as Telegram and Chrome declare only
+        // LAUNCHER. Query both so a projector driven with an air-mouse gets the apps it actually has,
+        // keeping the leanback entry when a package declares both (so it is not listed twice).
+        Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        List<ResolveInfo> found = new ArrayList<>(pm.queryIntentActivities(probe, 0));
+        Set<String> seenPkg = new HashSet<>();
+        for (ResolveInfo ri : found) {
+            if (ri.activityInfo != null) seenPkg.add(ri.activityInfo.packageName);
+        }
+        for (ResolveInfo ri : pm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)) {
+            if (ri.activityInfo != null && seenPkg.add(ri.activityInfo.packageName)) found.add(ri);
+        }
+        Map<String, Cards.Card> cardByPkg = new HashMap<>();
+        for (Cards.Card c : cards) cardByPkg.put(c.pkg, c);
+        // Every app that can be shown, by package: the layout picks out of this, and whatever is
+        // left over at the end is an app the owner has not placed yet.
+        Map<String, Entry> byPkg = new HashMap<>();
+        for (ResolveInfo ri : found) {
+            if (ri.activityInfo == null) continue;
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg) || takenOff.contains(pkg)) continue;
+            ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
+            Cards.Card card = cardByPkg.get(pkg);
+            if (card != null && !card.component.equals(component)) continue;   // the card stands in for this tile
+            Drawable banner = loadBanner(pm, ri);
+            Drawable icon = ri.loadIcon(pm);
+            if (card != null) {
+                byPkg.put(pkg, new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent));
+            } else {
+                // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
+                // redraw the tile name as something else (#117).
+                byPkg.put(pkg, new Entry(Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg),
+                        component, banner, icon));
+            }
+        }
+        if (layout == null) layout = initialLayout(byPkg);
+        List<Entry> fresh = new ArrayList<>();
+        for (Config.Slot slot : layout) {
+            if (slot.kind == Config.Slot.APP) {
+                Entry e = byPkg.remove(slot.pkg);
+                if (e != null) fresh.add(e);
+                continue;
+            }
+            List<Entry> kids = new ArrayList<>();
+            for (String pkg : slot.apps) {
+                Entry e = byPkg.remove(pkg);
+                if (e != null) kids.add(e);
+            }
+            if (!kids.isEmpty()) fresh.add(folderEntry(slot, kids));   // an empty folder is a dead end
+        }
+        List<Entry> rest = new ArrayList<>(byPkg.values());
+        Collections.sort(rest, tileOrder);
+        fresh.addAll(rest);
         // Retain the optional Default-home tile until dependent tile-ordering work is merged.
         if (showHomeSettings
                 && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
@@ -187,6 +321,166 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    /**
+     * The layout a first run starts from: the configured dock, then every other app alphabetically,
+     * then the configured folders at the end. It is only built once — from the first change on, the
+     * owner's own layout is the truth and this is never consulted again.
+     */
+    private List<Config.Slot> initialLayout(Map<String, Entry> byPkg) {
+        List<Config.Slot> start = new ArrayList<>();
+        for (String pkg : favourites) {
+            if (byPkg.containsKey(pkg)) start.add(Config.Slot.app(pkg));
+        }
+        Set<String> filed = new HashSet<>();
+        for (Config.Folder f : folders) filed.addAll(f.apps);
+        List<Entry> rest = new ArrayList<>();
+        for (Entry e : byPkg.values()) {
+            if (favourites.contains(e.pkg) || filed.contains(e.pkg)) continue;
+            rest.add(e);
+        }
+        Collections.sort(rest, tileOrder);
+        for (Entry e : rest) start.add(Config.Slot.app(e.pkg));
+        int n = 1;
+        for (Config.Folder f : folders) {
+            start.add(Config.Slot.folder("f" + n++, f.name, f.apps));
+        }
+        return start;
+    }
+
+    /** The live layout: Home mutates it and then calls {@link #reload}. */
+    List<Config.Slot> layout() {
+        return layout;
+    }
+
+    /** Replaces the layout, for a cancelled move putting the old order back. */
+    void setLayout(List<Config.Slot> layout) {
+        this.layout = new ArrayList<>(layout);
+    }
+
+    /** Index of the layout slot for this folder tile, or -1. */
+    static int slotIndexOfFolder(List<Config.Slot> layout, Entry tile) {
+        String uid = folderUid(tile);
+        if (uid == null) return -1;
+        for (int i = 0; i < layout.size(); i++) {
+            Config.Slot s = layout.get(i);
+            if (s.kind == Config.Slot.FOLDER && s.uid.equals(uid)) return i;
+        }
+        return -1;
+    }
+
+    /** The folder uid a folder tile stands for, or null when it is not one. */
+    static String folderUid(Entry e) {
+        if (e == null || e.kind != Entry.FOLDER) return null;
+        String cls = e.component.getClassName();          // "folder/<uid>", see folderEntry()
+        int cut = cls.lastIndexOf('/');
+        return cut < 0 ? null : cls.substring(cut + 1);
+    }
+
+    /** The folder tile for this uid, or null when that folder has no tile. */
+    Entry folderTileFor(String uid) {
+        for (Entry e : items) {
+            if (uid != null && uid.equals(folderUid(e))) return e;
+        }
+        return null;
+    }
+
+    /** Grid position of this folder's tile, or -1 when it is not on the grid. */
+    int positionOfFolder(String uid) {
+        for (int i = 0; i < items.size(); i++) {
+            if (uid != null && uid.equals(folderUid(items.get(i)))) return i;
+        }
+        return -1;
+    }
+
+    /** The tile at this position, or null when there is none. */
+    Entry entryAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position) : null;
+    }
+
+    /**
+     * Index of the tile the owner is carrying right now, or -1. Only the look changes: the layout
+     * is untouched until the tile is put down, so a drop on a folder can mean "put it inside".
+     */
+    private int movingPosition = -1;
+
+    void setMovingPosition(int position) {
+        if (movingPosition == position) return;
+        int old = movingPosition;
+        movingPosition = position;
+        if (old >= 0 && old < items.size()) notifyItemChanged(old);
+        if (position >= 0 && position < items.size()) notifyItemChanged(position);
+    }
+
+    /**
+     * Swaps two tiles, for the owner rearranging the grid. Only the view is moved: the layout list
+     * is rewritten from {@link #snapshot()} when the move is dropped, so a cancelled move costs
+     * nothing.
+     */
+    void swap(int from, int to) {
+        if (from == to || from < 0 || to < 0 || from >= items.size() || to >= items.size()) return;
+        Collections.swap(items, from, to);
+        notifyItemMoved(from, to);
+        // The dock band and the in-tile labels are positional, so everything between must rebind.
+        notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
+    }
+
+    /**
+     * The tiles as they now stand, as a layout. A folder keeps its uid, so its tile is still the
+     * same tile after the snapshot is written back and reloaded.
+     */
+    List<Config.Slot> snapshot() {
+        List<Config.Slot> out = new ArrayList<>();
+        for (Entry e : items) {
+            if (e.kind == Entry.HOME_SETTINGS) continue;      // not part of the owner's layout
+            if (e.kind == Entry.FOLDER) {
+                List<String> apps = new ArrayList<>();
+                for (Entry kid : e.children) apps.add(kid.pkg);
+                out.add(Config.Slot.folder(folderUid(e), e.label, apps));
+            } else {
+                out.add(Config.Slot.app(e.pkg));
+            }
+        }
+        return out;
+    }
+
+    /** A uid no folder in the layout uses yet. */
+    static String nextFolderUid(List<Config.Slot> layout) {
+        int n = 1;
+        for (Config.Slot s : layout) {
+            if (s.kind != Config.Slot.FOLDER) continue;
+            if (s.uid.startsWith("f")) {
+                try {
+                    n = Math.max(n, Integer.parseInt(s.uid.substring(1)) + 1);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return "f" + n;
+    }
+
+    /** The folder's tile: its name, a 2x2 picture of the apps inside it, and those apps as children. */
+    private Entry folderEntry(Config.Slot slot, List<Entry> members) {
+        List<Entry> kids = new ArrayList<>(members);
+        Collections.sort(kids, tileOrder);
+        List<Drawable> icons = new ArrayList<>();
+        for (int i = 0; i < Math.min(kids.size(), 4); i++) {
+            Drawable d = kids.get(i).icon;
+            if (d == null) continue;
+            // A private copy: setting bounds on the icon an app tile shows would move that tile's icon.
+            icons.add(d.getConstantState() != null ? d.getConstantState().newDrawable().mutate() : d);
+        }
+        Drawable picture = new FolderIcon(icons, kids.size());
+        // A folder created before the tile was renamed still carries the old default in the saved
+        // layout; the name the resource holds wins over that leftover, while a name the owner typed
+        // in is left alone.
+        String name = slot.name;
+        if (name == null || name.trim().isEmpty() || "Tools".equals(name.trim())) {
+            name = ctx.getString(R.string.folder_default_name);
+        }
+        return new Entry(Entry.FOLDER, name,
+                new ComponentName(ctx.getPackageName(), "folder/" + slot.uid), null, picture, null, 0, kids);
     }
 
     private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
@@ -222,14 +516,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         nameLp.width = w;
         nameLp.topMargin = h + Math.round(7 * density);
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener, animations, advancedEffects, reducedMotion);
+        return new Holder(v, listener, animations, advancedEffects, reducedMotion, w);
     }
 
     @Override
     public void onBindViewHolder(@NonNull Holder h, int position) {
         Entry e = items.get(position);
         h.name.setText(e.name);
+        // The tile being carried fades back, so it reads as held rather than placed.
+        h.itemView.setAlpha(position == movingPosition ? 0.45f : 1f);
+        h.name.setTextColor(nameColor);
         h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
+        bindIconSlot(h, e);
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused && animations ? focusScale() : 1f);
@@ -249,25 +547,56 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.icon.setImageDrawable(e.icon);
             h.icon.setVisibility(View.VISIBLE);
             h.label.setText(e.label);
-            h.label.setVisibility(View.VISIBLE);
+            // A folder fills the whole tile with its 2x2 picture, so the in-tile label would sit on
+            // top of it; the label under the tile (above) already names the folder.
+            h.label.setVisibility(e.kind == Entry.FOLDER ? View.GONE : View.VISIBLE);
         }
-        h.card.setOnClickListener(v -> launch(e));
+        h.card.setOnClickListener(v -> {
+            if (listener != null && listener.onTileActivated(e)) return;   // e.g. dropping a tile being moved
+            launch(e);
+        });
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            int pos = h.getBindingAdapterPosition();
+            if (listener != null && pos != RecyclerView.NO_POSITION) listener.onTileLongPress(pos);
             return true;
         });
     }
 
-    /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
-    private void launch(Entry e) {
+    /**
+     * The icon slot's size. A single icon gets the 48dp slot above the in-tile label; a folder's
+     * 2x2 picture uses nearly the whole tile, and its label is hidden (see onBindViewHolder), so the
+     * slot can grow and drop the bottom margin the label needs.
+     */
+    private void bindIconSlot(Holder h, Entry e) {
+        float density = ctx.getResources().getDisplayMetrics().density;
+        boolean folder = e.kind == Entry.FOLDER;
+        int want = folder
+                ? Math.min(h.tileW - Math.round(10 * density), Math.round(76 * density))
+                : Math.round(48 * density);
+        int bottom = folder ? 0 : Math.round(14 * density);
+        ViewGroup.LayoutParams lp = h.icon.getLayoutParams();
+        if (lp instanceof FrameLayout.LayoutParams) {
+            FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) lp;
+            if (flp.width == want && flp.height == want && flp.bottomMargin == bottom) return;
+        }
+        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(want, want);
+        flp.gravity = Gravity.CENTER;
+        flp.bottomMargin = bottom;
+        h.icon.setLayoutParams(flp);
+    }
+
+    /**
+     * Opens the tile's activity by explicit component, with no extras: a card can name nothing else.
+     * Package-private so Home can launch an app out of an open folder with the very same path.
+     */
+    void launch(Entry e) {
         if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return;
+        }
+        if (e.kind == Entry.FOLDER) {
+            if (listener != null) listener.onFolderOpen(e);
             return;
         }
         Intent i = new Intent(Intent.ACTION_MAIN)
@@ -368,7 +697,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     /** Corner radius for a tile of this width: 16dp at the design width, proportionally less when smaller. */
     static float cornerRadius(int tileWidthPx, float density) {
-        return 16f * density * Math.min(1f, tileWidthPx / (DESIGN_W_DP * density));
+        return 18f * density * Math.min(1f, tileWidthPx / (DESIGN_W_DP * density));
     }
 
     static final class Holder extends RecyclerView.ViewHolder {
@@ -377,18 +706,26 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final ImageView icon;
         final TextView label;
         final TextView name;
+        /** Width of the tile, set in onCreateViewHolder: a folder's picture is sized from it. */
+        final int tileW;
         final boolean animations;
         final boolean advancedEffects;
         final boolean reducedMotion;
+        /** Set once a held OK has opened the tile menu, so the release does not also launch the tile. */
+        private boolean keyLongPressFired;
+        /** Focus grows on a spring; it shrinks on a plain curve, so leaving a tile never wobbles. */
+        private final Interpolator spring = new SpringInterpolator();
+        private final Interpolator settle = new DecelerateInterpolator(1.8f);
 
         Holder(View v, TileListener listener, boolean animations, boolean advancedEffects,
-               boolean reducedMotion) {
+               boolean reducedMotion, int tileW) {
             super(v);
             card = v.findViewById(R.id.card);
             banner = v.findViewById(R.id.banner);
             icon = v.findViewById(R.id.icon);
             label = v.findViewById(R.id.label);
             name = v.findViewById(R.id.name);
+            this.tileW = tileW;
             this.animations = animations;
             this.advancedEffects = advancedEffects;
             this.reducedMotion = reducedMotion;
@@ -403,7 +740,33 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             });
             card.setClipToOutline(true);
 
+            final Runnable keyLongPress = () -> {
+                keyLongPressFired = true;
+                int pos = getBindingAdapterPosition();
+                if (listener != null && pos != RecyclerView.NO_POSITION) listener.onTileLongPress(pos);
+            };
+
             card.setOnKeyListener((view, keyCode, event) -> {
+                // A remote's OK arrives as a key, not a touch, so View's own long press never sees it:
+                // time the hold here and swallow the click the release would otherwise fire.
+                boolean centre = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER;
+                if (centre) {
+                    if (event.getAction() == KeyEvent.ACTION_UP) {
+                        view.removeCallbacks(keyLongPress);
+                        if (!keyLongPressFired) return false;
+                        keyLongPressFired = false;
+                        return true;
+                    }
+                    if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                    if (event.getRepeatCount() == 0) {
+                        keyLongPressFired = false;
+                        view.postDelayed(keyLongPress, ViewConfiguration.getLongPressTimeout());
+                    } else if (!keyLongPressFired) {
+                        view.removeCallbacks(keyLongPress);   // a remote that repeats instead of holding
+                        keyLongPress.run();
+                    }
+                    return false;
+                }
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
                 if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN
                         && keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
@@ -438,8 +801,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                     view.animate().scaleX(s).scaleY(s)
                             .translationY(focused && advancedEffects ? -4f * density : 0f)
                             .translationZ(focused && advancedEffects ? 8f * density : 0f)
-                            .setDuration(advancedEffects ? (focused ? 220 : 170) : (focused ? 260 : 180))
-                            .setInterpolator(new OvershootInterpolator(focused ? (advancedEffects ? 0.7f : 1.6f) : 0f))
+                            .setDuration(focused ? 240 : 160)
+                            // A damped spring, not OvershootInterpolator(1.6): 60% overshoot made
+                            // every D-pad step bounce the tile out and snap it back.
+                            .setInterpolator(focused ? spring : settle)
                             .withLayer().start();
                     if (advancedEffects) {
                         banner.animate().scaleX(focused ? 1.035f : 1f).scaleY(focused ? 1.035f : 1f)

@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher settings. Same dark surface, same 16dp rows, same type ramp as the rest of the
+     launcher; the section label sits above its rows in small dim caps the way tvOS labels a group,
+     and the value of each switch is dimmed so the row reads label-then-value at a glance. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF101419"
+    android:background="@drawable/settings_bg"
     android:fillViewport="true">
 
     <LinearLayout
@@ -19,15 +22,20 @@
             android:layout_height="wrap_content"
             android:text="@string/launcher_settings"
             android:textColor="#FFFFFFFF"
-            android:textSize="34sp" />
+            android:textSize="32sp"
+            android:fontFamily="@font/inter_light"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="30dp"
             android:text="@string/columns_label"
-            android:textColor="#FFFFFFFF"
-            android:textSize="20sp" />
+            android:textColor="#8CFFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="@font/inter_medium"
+            android:letterSpacing="0.16" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -42,22 +50,32 @@
         </LinearLayout>
 
         <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="@string/motion_label"
+            android:textColor="#8CFFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="@font/inter_medium"
+            android:letterSpacing="0.16" />
+
+        <TextView
             android:id="@+id/animationsChoice"
             style="@style/SettingsRow"
-            android:layout_marginTop="28dp" />
+            android:layout_marginTop="10dp" />
 
         <TextView
             android:id="@+id/advancedChoice"
             style="@style/SettingsRow"
-            android:layout_marginTop="10dp" />
+            android:layout_marginTop="8dp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/advanced_effects_warning"
-            android:textColor="#FFACB8C1"
-            android:textSize="14sp" />
+            android:textColor="#73FFFFFF"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/followThemeChoice"
@@ -70,13 +88,29 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
             android:text="@string/follow_theme_hint"
-            android:textColor="#FFACB8C1"
-            android:textSize="14sp" />
+            android:textColor="#73FFFFFF"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="@string/appearance_label"
+            android:textColor="#8CFFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="@font/inter_medium"
+            android:letterSpacing="0.16" />
+
+        <TextView
+            android:id="@+id/wallpaperChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:text="@string/wallpaper" />
 
         <TextView
             android:id="@+id/defaultHomeChoice"
             style="@style/SettingsRow"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="18dp"
             android:text="@string/home_settings" />
 
         <TextView
@@ -84,8 +118,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
             android:text="@string/home_settings_help"
-            android:textColor="#FFACB8C1"
-            android:textSize="14sp" />
+            android:textColor="#73FFFFFF"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/tvSettingsChoice"

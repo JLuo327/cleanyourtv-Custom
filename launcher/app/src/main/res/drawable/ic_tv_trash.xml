@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Delete as a solid bin (SF Symbols trash.fill): a rounded lid bar, a U-shaped handle on top of
+     it, and a tapered body. A wireframe bin at 1.7dp next to a filled gear was the clearest sign
+     the set had been drawn by hand, one icon at a time. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp" android:height="22dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M6.6,5.6 H17.4 A1.2,1.2 0 0 1 17.4,8 H6.6 A1.2,1.2 0 0 1 6.6,5.6 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M9.5,5.4 V4.3 A1.3,1.3 0 0 1 10.8,3 H13.2 A1.3,1.3 0 0 1 14.5,4.3 V5.4 H12.9 V4.6 H11.1 V5.4 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M5.9,9.4 H18.1 L17.2,19.5 A2.3,2.3 0 0 1 14.9,21.8 H9.1 A2.3,2.3 0 0 1 6.8,19.5 Z" />
+</vector>

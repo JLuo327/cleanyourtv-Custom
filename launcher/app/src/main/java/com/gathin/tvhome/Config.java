@@ -26,6 +26,11 @@ import java.util.List;
  * {@code tools/theme.sh themes/<name>} pushes a theme folder there and restarts Home.
  *
  * Read once in {@link MainActivity#onCreate}; nothing here touches the network.
+ *
+ * <p>A folder is one tile standing in for several apps:
+ * <pre>{"folders": [{"name": "Tools", "apps": ["com.android.tv", "com.example.mh"]}]}</pre>
+ * The built-in default collects the TV's rarely used system tools; an overlay with a different
+ * {@code folders} array replaces it, and {@code "folders": []} turns folders off.
  */
 final class Config {
     private static final String TAG = "TvHome.Config";
@@ -34,9 +39,79 @@ final class Config {
     static final String SETTINGS_NAME = "launcher_settings";
     private static final String THEME_REVISION_NAME = "theme_revision";
     private static final String THEME_SIGNATURE_KEY = "theme_signature";
+    /** Where the owner's own tile order lives (SharedPreferences in launcher_settings). */
+    static final String LAYOUT_PREFS_KEY = "layout";
+    /** Apps the owner took off the home screen from the tile menu (same SharedPreferences). */
+    static final String HIDDEN_PREFS_KEY = "taken_off";
+
+    /**
+     * Apps the built-in folder collects: the TV's own Live TV app (the HDMI list lives behind it),
+     * the two screen-mirroring receivers, the remote-mouse server and the subscription helper.
+     * Overridden wholesale by a "folders" array in config.json.
+     */
+    private static final List<String> DEFAULT_FOLDER_APPS = Arrays.asList(
+            "com.android.tv",
+            "com.maxhub.screenshare.server.tv",
+            "com.droidlogic.mediacenter",
+            "com.vonchange.marmot.cursor",
+            "com.wukongdaily.myclashsub");
+
+    /** One folder tile on the home screen: a label and the packages it opens. */
+    static final class Folder {
+        final String name;
+        final List<String> apps;
+
+        Folder(String name, List<String> apps) {
+            this.name = name;
+            this.apps = Collections.unmodifiableList(apps);
+        }
+    }
+
+    /**
+     * One entry in the owner's layout. The layout is a plain ordered list of slots: the first
+     * {@code columns} slots are the dock, the rest are the grid, and an app the owner never placed
+     * (a new install) is appended after them. That single rule is what makes an app movable to the
+     * dock, into a folder, or anywhere else — it is only its position in this list.
+     */
+    static final class Slot {
+        static final int APP = 0, FOLDER = 1;
+
+        final int kind;
+        /** Package name, for an app slot. */
+        final String pkg;
+        /** Tile label, for a folder slot. */
+        final String name;
+        /** Packages inside a folder, in the order the folder panel lists them. */
+        final List<String> apps;
+        /** Stable identity for a folder tile, so it keeps its place while apps come and go. */
+        final String uid;
+
+        static Slot app(String pkg) {
+            return new Slot(APP, pkg, "", null, "");
+        }
+
+        static Slot folder(String uid, String name, List<String> apps) {
+            return new Slot(FOLDER, "", name, apps, uid);
+        }
+
+        private Slot(int kind, String pkg, String name, List<String> apps, String uid) {
+            this.kind = kind;
+            this.pkg = pkg;
+            this.name = name;
+            this.apps = apps == null ? Collections.<String>emptyList() : Collections.unmodifiableList(apps);
+            this.uid = uid;
+        }
+    }
 
     final List<String> dockApps;
     final List<String> hiddenApps;
+    /** Folders named in config.json (or the built-in default); they seed the layout on first run. */
+    final List<Folder> folders;
+    /**
+     * The owner's tile order, or null until the first run builds one. Null means "lay it out the
+     * built-in way": the dock, then everything alphabetically, then the configured folders.
+     */
+    final List<Slot> layout;
     final String liveTvPackage;
     final String liveTvAction;
     final String sourcePanelService;
@@ -48,6 +123,8 @@ final class Config {
     final int rowsBelowDock;
     final boolean shamsiDate;
     final boolean moduleCards;
+    /** Local status cards (storage / RAM / removable) under the clock; config.xml info_cards. */
+    final boolean infoCards;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     final boolean reducedMotion;
     final String vpnApp;
@@ -61,14 +138,17 @@ final class Config {
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
 
-    private Config(List<String> dockApps, List<String> hiddenApps, String liveTvPackage, String liveTvAction,
+    private Config(List<String> dockApps, List<String> hiddenApps, List<Folder> folders, List<Slot> layout,
+                   String liveTvPackage, String liveTvAction,
                    String sourcePanelService, String sourcePanelAction, String inputAction,
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
-                   boolean shamsiDate, boolean moduleCards, boolean reducedMotion, String vpnApp,
+                   boolean shamsiDate, boolean moduleCards, boolean infoCards, boolean reducedMotion, String vpnApp,
                    boolean showHomeSettingsShortcut, int backgroundColor, int skyIntensity,
                    File wallpaper, boolean overlayApplied) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
+        this.folders = Collections.unmodifiableList(folders);
+        this.layout = layout == null ? null : Collections.unmodifiableList(layout);
         this.liveTvPackage = liveTvPackage;
         this.liveTvAction = liveTvAction;
         this.sourcePanelService = sourcePanelService;
@@ -80,6 +160,7 @@ final class Config {
         this.advancedEffects = advancedEffects;
         this.shamsiDate = shamsiDate;
         this.moduleCards = moduleCards;
+        this.infoCards = infoCards;
         this.reducedMotion = reducedMotion;
         this.vpnApp = vpnApp;
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
@@ -109,11 +190,15 @@ final class Config {
         boolean advancedEffects = res.getBoolean(R.bool.advanced_effects);
         boolean shamsi = res.getBoolean(R.bool.shamsi_date);
         boolean moduleCards = res.getBoolean(R.bool.module_cards);
+        boolean infoCards = res.getBoolean(R.bool.info_cards);
         boolean reducedMotion = res.getBoolean(R.bool.reduced_motion);
         String vpn = res.getString(R.string.vpn_app).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         int background = 0xFF000000;
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
+        String folderName = res.getString(R.string.folder_default_name);
+        List<Folder> folders = new ArrayList<>();
+        folders.add(new Folder(folderName, DEFAULT_FOLDER_APPS));
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -134,11 +219,16 @@ final class Config {
             advancedEffects = bool(json, "advanced_effects", advancedEffects);
             shamsi = bool(json, "shamsi_date", shamsi);
             moduleCards = bool(json, "module_cards", moduleCards);
+            infoCards = bool(json, "info_cards", infoCards);
             reducedMotion = bool(json, "reduced_motion", reducedMotion);
             vpn = string(json, "vpn_app", vpn);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             background = color(json, "background_color", background);
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
+            // Absent keeps the built-in folder; present replaces it, so "folders": [] folds nothing.
+            if (json.opt("folders") instanceof JSONArray) {
+                folders = folderList((JSONArray) json.opt("folders"), folderName);
+            }
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -148,14 +238,17 @@ final class Config {
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         animations = choices.getBoolean("animations", animations);
         advancedEffects = choices.getBoolean("advanced_effects", advancedEffects);
+        // The owner's own tile order, written whenever a tile is moved or a folder is made or
+        // dropped. It outranks the built-in layout until the next theme push clears it.
+        List<Slot> layout = layoutFromJson(choices.getString(LAYOUT_PREFS_KEY, null));
         File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
         if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
         // A theme can also switch the wallpaper off while the file is still there.
         if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
 
-        return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
+        return new Config(dock, hidden, folders, layout, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
-                shamsi, moduleCards, reducedMotion, vpn, homeSettings, background,
+                shamsi, moduleCards, infoCards, reducedMotion, vpn, homeSettings, background,
                 Math.max(0, Math.min(100, skyIntensity)), wallpaper, applied);
     }
 
@@ -173,6 +266,7 @@ final class Config {
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
+                    .remove(LAYOUT_PREFS_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
     }
@@ -250,5 +344,82 @@ final class Config {
             if (item instanceof String && !((String) item).trim().isEmpty()) out.add(((String) item).trim());
         }
         return out;
+    }
+
+    /**
+     * Parses a "folders" array: a list of {@code {"name": ..., "apps": [...]}} objects. An entry
+     * that is not an object, or that names no app, is dropped rather than failing the whole overlay;
+     * an entry with no name takes the built-in folder's name.
+     */
+    private static List<Folder> folderList(JSONArray a, String defaultName) {
+        List<Folder> out = new ArrayList<>();
+        for (int i = 0; i < a.length(); i++) {
+            JSONObject o = a.optJSONObject(i);
+            if (o == null) continue;
+            Object n = o.opt("name");
+            String name = n instanceof String ? ((String) n).trim() : "";
+            if (name.isEmpty()) name = defaultName;
+            List<String> apps = stringList(o, "apps", Collections.<String>emptyList());
+            if (!apps.isEmpty()) out.add(new Folder(name, apps));
+        }
+        return out;
+    }
+
+    /**
+     * The owner's layout as stored in SharedPreferences, or null when it has never been written.
+     * A layout that does not parse is treated as absent, so a corrupt preference falls back to the
+     * built-in order instead of an empty home screen.
+     */
+    static List<Slot> layoutFromJson(String text) {
+        if (text == null || text.trim().isEmpty()) return null;
+        try {
+            JSONArray a = new JSONArray(text);
+            List<Slot> out = new ArrayList<>();
+            for (int i = 0; i < a.length(); i++) {
+                JSONObject o = a.optJSONObject(i);
+                if (o == null) continue;
+                Object app = o.opt("app");
+                if (app instanceof String && !((String) app).trim().isEmpty()) {
+                    out.add(Slot.app(((String) app).trim()));
+                    continue;
+                }
+                Object uid = o.opt("folder");
+                if (!(uid instanceof String) || ((String) uid).trim().isEmpty()) continue;
+                Object name = o.opt("name");
+                List<String> apps = stringList(o, "apps", Collections.<String>emptyList());
+                if (apps.isEmpty()) continue;
+                out.add(Slot.folder(((String) uid).trim(),
+                        name instanceof String && !((String) name).trim().isEmpty()
+                                ? ((String) name).trim() : "Folder",
+                        apps));
+            }
+            return out;
+        } catch (Exception e) {
+            Log.w(TAG, "ignoring saved layout: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /** Serialises the layout for SharedPreferences; null when it cannot be written. */
+    static String layoutToJson(List<Slot> layout) {
+        JSONArray a = new JSONArray();
+        for (Slot s : layout) {
+            JSONObject o = new JSONObject();
+            try {
+                if (s.kind == Slot.APP) {
+                    o.put("app", s.pkg);
+                } else {
+                    JSONArray apps = new JSONArray();
+                    for (String pkg : s.apps) apps.put(pkg);
+                    o.put("folder", s.uid);
+                    o.put("name", s.name);
+                    o.put("apps", apps);
+                }
+            } catch (Exception ignored) {
+                return null;
+            }
+            a.put(o);
+        }
+        return a.toString();
     }
 }

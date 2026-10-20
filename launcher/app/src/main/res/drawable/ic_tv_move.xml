@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Move as four solid arrows, the shape the owner picked: a wide triangular head on a short thick
+     shaft, one in each direction, with a small square of clear space left in the middle so the four
+     never read as a single cross. Filled rather than stroked — at 22dp the outline version's 2.3dp
+     strokes came out lighter than any system glyph, and this one carries the same weight at a
+     glance. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp" android:height="22dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2 L17.5,8 L13.7,8 L13.7,11 L10.3,11 L10.3,8 L6.5,8 Z" />
+
+    <group android:pivotX="12" android:pivotY="12" android:rotation="90">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M12,2 L17.5,8 L13.7,8 L13.7,11 L10.3,11 L10.3,8 L6.5,8 Z" />
+    </group>
+
+    <group android:pivotX="12" android:pivotY="12" android:rotation="180">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M12,2 L17.5,8 L13.7,8 L13.7,11 L10.3,11 L10.3,8 L6.5,8 Z" />
+    </group>
+
+    <group android:pivotX="12" android:pivotY="12" android:rotation="270">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M12,2 L17.5,8 L13.7,8 L13.7,11 L10.3,11 L10.3,8 L6.5,8 Z" />
+    </group>
+</vector>

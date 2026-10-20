@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One colour, focused or not. Nothing in this launcher fills in when it is selected any more —
+     focus is a ring and a slight lift — so inverting the type would leave dark text on a photo. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_focused="true" android:color="#FF111111" />
     <item android:color="#FFFFFFFF" />
 </selector>

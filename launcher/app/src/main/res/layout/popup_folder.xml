@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The panel a folder tile opens: the apps inside it as a square block of icons. The block is
+     built in code (AppAdapter/MainActivity) because its column count follows the app count, so a
+     folder of four is 2x2 and a folder of nine is 3x3 rather than a strip of thumbnails.
+
+     No background here: showFolderContent() paints it, so the folder wears exactly the same glass
+     as every other menu and the light/dark wallpaper switch is decided in one place. The padding is
+     what keeps the outer icons off the rounded corners. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/panel"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="16dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <ScrollView
+        android:id="@+id/scroll"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:clipToPadding="false"
+        android:clipChildren="false">
+
+        <LinearLayout
+            android:id="@+id/iconGrid"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="start" />
+    </ScrollView>
+</LinearLayout>

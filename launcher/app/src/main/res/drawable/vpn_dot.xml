@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The VPN tile's status light: green while the tunnel is up, gray while it is not. Tinted in
+     code, so one drawable serves both states and both focus colours. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="#FFFFFFFF" />
+    <size android:width="8dp" android:height="8dp" />
+</shape>

@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Settings rows, in the same language as the control centre: a quiet white wash on dark, no
+     accent colour. The old rows were slate blue (#242B34) and lit up mint green on focus (#4DAE6D)
+     — a colour that exists nowhere else in the launcher, so every visit to Settings looked like a
+     different product. Selection still has to be visible, so it keeps a rim; focus simply gets
+     brighter, which is the only cue tvOS uses here. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#5574A987" />
-            <corners android:radius="14dp" />
-            <stroke android:width="2dp" android:color="#FFB9E7C7" />
+            <solid android:color="#2EFFFFFF" />
+            <stroke android:width="1.5dp" android:color="#66FFFFFF" />
+            <corners android:radius="16dp" />
         </shape>
     </item>
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="#334DAE6D" />
-            <corners android:radius="14dp" />
-            <stroke android:width="1dp" android:color="#FF4DAE6D" />
+            <solid android:color="#1FFFFFFF" />
+            <stroke android:width="1dp" android:color="#66FFFFFF" />
+            <corners android:radius="16dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#FF242B34" />
-            <corners android:radius="14dp" />
+            <solid android:color="#12FFFFFF" />
+            <corners android:radius="16dp" />
         </shape>
     </item>
 </selector>

@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Menu panel. Nothing clips: a focused row lifts by a few percent, and clipping would shave the
+     ring off at the left and right edges. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/panel"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/glass_panel"
-    android:padding="6dp"
-    android:elevation="12dp">
+    android:padding="10dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <LinearLayout
         android:id="@+id/rows"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical" />
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false" />
 </LinearLayout>
