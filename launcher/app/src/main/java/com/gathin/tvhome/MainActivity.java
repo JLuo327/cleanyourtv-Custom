@@ -2266,17 +2266,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Hugging the corner keeps the panel's whole bottom edge right above the tile, the way a tvOS
      * menu grows out of the icon it belongs to.
      *
-     * <p>The row the tile sits on decides the slide only; every row opens UPWARDS:</p>
-     * <ul>
-     *   <li><b>Dock row</b> (position &lt; COLUMNS): the panel slides two icon widths right (one
-     *   less than the grid's three) and opens upwards, its bottom edge flush with the tile's top
-     *   edge — zero gap, the way a tvOS menu grows out of the icon it belongs to.</li>
-     *   <li><b>Every other row</b> (bottom row included): three icon widths right, opening
-     *   upwards the same way — one behaviour for the whole grid.</li>
-     * </ul>
-     *
-     * <p>Both slides give back two thirds of an icon width: the compact menu is narrower now, and
-     * without the nudge its left edge drifted past the tile it belongs to.</p>
+     * <p>Every row gets the same slide now — two app-icon widths right, giving back two thirds of
+     * an icon for the slimmer menu (net 96px at this density). The dock used to slide three, which
+     * made row two's menu sit a different distance from its tile than row one's; one offset for the
+     * whole grid is what makes the panel read as growing out of the tile on every row.</p>
      *
      * <p>Every edge meets its tile edge flush (gap 0), not floating a few pixels off it. A flip
      * keeps the panel on screen when there is no room above, and a panel wider than the room left
@@ -2287,16 +2280,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int gap = 0;                                     // flush: the panel edge meets the tile edge
         int icon = (int) (48 * density);
         int nudge = icon * 2 / 3;                       // the slimmer menu sits 2/3 icon left
-        int shift = icon * 3 - nudge;                   // three app-icon widths right (grid rows)
-        int dockShift = icon * 2 - nudge;               // dock row: two icons right
+        int slide = icon * 2 - nudge;                  // every row: two icons right, minus nudge
         int back = icon * 2;                            // two app-icon widths left (last column)
         int screenW = root.getWidth();
         int screenH = root.getHeight();
         int x;
         int y;
         if (tile != null) {
-            boolean dockRow = position >= 0 && position < COLUMNS;
-            int slide = dockRow ? dockShift : shift;
             x = tile.right - width + gap + slide;       // right edges line up, then the slide
             y = tile.top - height - gap;                // every row: bottom edge flush above tile
             if (y < margin) y = tile.bottom + gap;      // no room above: open downwards
