@@ -2225,21 +2225,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * <p>Two flips keep the panel on screen: no room above opens it downwards (its top-right
      * corner at the tile's bottom-right), and a panel wider than the room left of the tile slides
      * to the screen margin instead of hanging off the left edge.
+     *
+     * <p>Every panel also slides three app-icon widths to the RIGHT of the tile it came from, so it
+     * reads as unfolding out of that tile's top-right corner rather than hanging over the next
+     * column. The right-most column has no room for that — there the panel slides two icon widths
+     * to the LEFT instead of clamping against the screen edge, which keeps the last column's menu
+     * clear of the bezel.
      */
     private int[] spotNearTile(Rect tile, int width, int height) {
         int margin = (int) (22 * density);
         int gap = (int) (10 * density);
+        int shift = (int) (48 * density) * 3;              // three app-icon widths right
+        int back = (int) (48 * density) * 2;               // two app-icon widths left (last column)
         int screenW = root.getWidth();
         int screenH = root.getHeight();
         int x;
         int y;
         if (tile != null) {
-            x = tile.right - width + gap;                     // right edges line up
-            y = tile.top - height - gap;                      // bottom edge just above the tile
-            if (y < margin) y = tile.bottom + gap;            // no room above: open downwards
-            if (x < margin) x = margin;                       // wider than the room to the left
+            x = tile.right - width + gap + shift;          // right edges line up, then three icons right
+            y = tile.top - height - gap;                    // bottom edge just above the tile
+            if (y < margin) y = tile.bottom + gap;          // no room above: open downwards
+            if (x > screenW - margin - width) {
+                x = tile.right - width + gap - back;      // right-most column: two icons left instead
+            }
+            if (x < margin) x = margin;                     // wider than the room to the left
         } else {
-            x = screenW - margin - width;                     // unknown tile: top right, clear of the pills
+            x = screenW - margin - width;                   // unknown tile: top right, clear of the pills
             y = (int) (150 * density);
         }
         x = Math.min(x, Math.max(margin, screenW - margin - width));
