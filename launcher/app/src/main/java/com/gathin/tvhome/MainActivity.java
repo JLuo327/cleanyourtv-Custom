@@ -2227,9 +2227,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      *   <li><b>Dock row</b> (position &lt; COLUMNS): the panel slides two icon widths right (one
      *   less than the grid's three) and opens UPWARDS, its bottom edge flush with the tile's top
      *   edge — zero gap, the way a tvOS menu grows out of the icon it belongs to.</li>
-     *   <li><b>Bottom grid row</b> (last visible row above the dock): the mirror image — one icon
-     *   width to the LEFT, the panel's bottom edge flush with the tile's bottom edge, so it hangs
-     *   below the tile instead of covering the dock.</li>
+     *   <li><b>Bottom grid row</b> (last visible row above the dock): the mirror image of the
+     *   dock — two icon widths right as well, but the panel's bottom edge flush with the tile's
+     *   bottom edge, so it hangs down-right out of the tile's lower corner instead of covering
+     *   the dock above it.</li>
      *   <li><b>Every other row</b>: three icon widths right, opening upwards.</li>
      * </ul>
      *
@@ -2243,8 +2244,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int gap = 0;                                     // flush: the panel edge meets the tile edge
         int icon = (int) (48 * density);
         int shift = icon * 3;                           // three app-icon widths right (grid rows)
-        int dockShift = icon * 2;                       // dock row: one less to the right
-        int bottomShift = -icon;                        // bottom grid row: one icon width LEFT
+        int dockShift = icon * 2;                       // dock row and bottom row: two icons right
         int back = icon * 2;                            // two app-icon widths left (last column)
         int screenW = root.getWidth();
         int screenH = root.getHeight();
@@ -2253,7 +2253,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (tile != null) {
             boolean dockRow = position >= 0 && position < COLUMNS;
             boolean bottomRow = !dockRow && tile.bottom > screenH * 0.52f;
-            int slide = dockRow ? dockShift : (bottomRow ? bottomShift : shift);
+            int slide = dockRow || bottomRow ? dockShift : shift;
             x = tile.right - width + gap + slide;       // right edges line up, then the slide
             if (bottomRow) {
                 y = tile.bottom - height;               // bottom row: bottom edges flush
