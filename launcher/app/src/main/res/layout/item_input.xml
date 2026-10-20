@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- One row of a menu. Compact on purpose: the icon carries some of the weight the little icons
-     inside a folder carry, the label drops two steps, and the row itself is slimmer — together
-     they read as a tvOS action sheet rather than a list of footnotes. -->
+     inside a folder carry, the label drops a step further, and the row itself is slimmer —
+     together they read as a tvOS action sheet rather than a list of footnotes. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="46dp"
+    android:layout_height="32dp"
     android:layout_marginTop="1dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
+    android:paddingStart="10dp"
+    android:paddingEnd="10dp"
     android:background="@drawable/input_row_bg"
     android:focusable="true"
     android:focusableInTouchMode="true"
@@ -17,8 +17,8 @@
 
     <ImageView
         android:id="@+id/icon"
-        android:layout_width="26dp"
-        android:layout_height="26dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
         android:tint="@drawable/pill_text"
         android:duplicateParentState="true"
         android:contentDescription="@null" />
@@ -27,11 +27,11 @@
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="10dp"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="8dp"
         android:textColor="@drawable/pill_text"
         android:duplicateParentState="true"
-        android:textSize="15sp"
+        android:textSize="13sp"
         android:fontFamily="@font/inter_medium"
         android:letterSpacing="0.005"
         android:singleLine="true"
@@ -39,9 +39,9 @@
 
     <View
         android:id="@+id/dot"
-        android:layout_width="6dp"
-        android:layout_height="6dp"
-        android:layout_marginEnd="8dp"
+        android:layout_width="5dp"
+        android:layout_height="5dp"
+        android:layout_marginEnd="7dp"
         android:background="@drawable/status_dot" />
 
     <TextView
@@ -50,7 +50,7 @@
         android:layout_height="wrap_content"
         android:textColor="@drawable/pill_text_dim"
         android:duplicateParentState="true"
-        android:textSize="11sp"
+        android:textSize="10sp"
         android:fontFamily="@font/inter_regular"
         android:letterSpacing="0.04" />
 </LinearLayout>

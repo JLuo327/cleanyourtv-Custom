@@ -51,7 +51,8 @@
     <string name="nothing_hidden">No app to add back</string>
     <string name="removed_hint">Removed from Home · add it back from \"Add apps\"</string>
     <string name="tile_info">App info</string>
-    <string name="move_hint">D-pad walks · OK drops it · drop on a folder to move it in · Back cancels</string>
+    <string name="move_hint">Picked up: D-pad drags it · OK drops it · onto a folder moves it in · Back cancels</string>
+    <string name="move_drop_in">Drop in</string>
     <string name="home_settings_help">Select your original home to stop using CleanYourTV as Home, or CleanYourTV to switch back. The original launcher must be enabled and your TV must provide a home picker; use the restore script first if it was disabled.</string>
     <string name="launcher_settings">Home settings</string>
     <string name="columns_label">Apps per row</string>

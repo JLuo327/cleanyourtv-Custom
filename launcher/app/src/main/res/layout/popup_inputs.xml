@@ -11,7 +11,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/glass_panel"
-    android:padding="10dp"
+    android:padding="8dp"
     android:clipChildren="false"
     android:clipToPadding="false">
 

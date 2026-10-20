@@ -414,16 +414,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     /**
-     * Swaps two tiles, for the owner rearranging the grid. Only the view is moved: the layout list
-     * is rewritten from {@link #snapshot()} when the move is dropped, so a cancelled move costs
-     * nothing.
+     * Swaps two tiles, for the owner dragging one across the grid. Both slots rebind in place: a
+     * move notification would re-home the holders between them, and the focused card — the cursor
+     * mid-drag — would be scrapped in the shuffle and the highlight lost with it.
      */
     void swap(int from, int to) {
         if (from == to || from < 0 || to < 0 || from >= items.size() || to >= items.size()) return;
         Collections.swap(items, from, to);
-        notifyItemMoved(from, to);
-        // The dock band and the in-tile labels are positional, so everything between must rebind.
-        notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
+        notifyItemChanged(from);
+        notifyItemChanged(to);
     }
 
     /**
@@ -705,7 +704,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         return 18f * density * Math.min(1f, tileWidthPx / (DESIGN_W_DP * density));
     }
 
-    static final class Holder extends RecyclerView.ViewHolder {
+    final class Holder extends RecyclerView.ViewHolder {
         final View card;
         final ImageView banner;
         final ImageView icon;
@@ -820,6 +819,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                             .setDuration(220).start();
                 }
                 int pos = getBindingAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION && pos < items.size()) {
+                    // While an app is carried over a folder the label says what OK will do there,
+                    // because the carried tile does not swap past a folder: it moves inside it.
+                    Entry e = items.get(pos);
+                    boolean dropIn = focused && movingPosition >= 0 && pos != movingPosition
+                            && e.kind == Entry.FOLDER
+                            && items.get(movingPosition).kind != Entry.FOLDER;
+                    name.setText(dropIn ? ctx.getString(R.string.move_drop_in) : e.name);
+                }
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);
                 }

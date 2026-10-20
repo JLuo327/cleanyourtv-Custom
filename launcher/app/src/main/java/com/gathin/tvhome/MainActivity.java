@@ -117,6 +117,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean moving;
     /** Where the carried tile came from, or -1 when nothing is being carried. */
     private int moveFrom = -1;
+    /** True once the live drag has swapped views, so Back has an order to put back. */
+    private boolean moveDirty;
+    /** The layout as it stood when the tile was picked up, for Back to restore. */
+    private List<Config.Slot> moveOriginal;
     private FrameLayout root;
     private GlassView glass;
     private View ambient;
@@ -812,7 +816,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onBackPressed() {
         if (moving) {
-            cancelMove();       // Back puts the tile back: nothing was changed yet
+            cancelMove();       // Back undoes the drag: every tile goes back where it came from
             return;
         }
         // Home screen: Back goes nowhere.
@@ -824,6 +828,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onTileFocused(int position, View card) {
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
+        if (moving && position != moveFrom) dragStep(position);   // the live drag: it follows the cursor
         // Tile rect in root coordinates, using layout positions (ignores the scale animation).
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
@@ -1022,16 +1027,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
-        // While carrying, the cursor walks the grid by index: the default focus finder jumps to a
-        // distant tile once a row runs out, which would drop the tile somewhere nobody aimed at.
+        // While carrying, the cursor IS the carried tile, so the walk starts from moveFrom — not
+        // from whatever holder happens to hold focus after a swap reshuffled them.
         if (moving) {
-            int to = position;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) to = position - 1;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) to = position + 1;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) to = position - COLUMNS;
-            else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) to = position + COLUMNS;
+            int to = moveFrom;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) to = moveFrom - 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) to = moveFrom + 1;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) to = moveFrom - COLUMNS;
+            else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) to = moveFrom + COLUMNS;
             else return false;
-            if (to < 0 || to >= adapter.getItemCount() || to == position) return true;   // stay put
+            if (to < 0 || to >= adapter.getItemCount()) return true;   // stay put
             focusTile(to);
             return true;
         }
@@ -1646,15 +1651,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * Carrying mode: the tile is picked up where it stands and the D-pad then walks the grid as
-     * usual, so OK can put it down anywhere — on another tile (the two trade places), on a folder
-     * (the app moves inside it), or at the end. Nothing in the layout changes until OK, which is
-     * what lets a drop onto a folder mean "put it in" instead of "swap with the folder".
+     * Carrying mode: the tile is picked up where it stands and the D-pad then drags it through the
+     * grid — every focus step swaps the carried tile with the one under the cursor, so the grid
+     * reorders live, the way a drag should. OK puts it down where it then sits, or on a folder
+     * (the app moves inside it), and Back puts every tile back where it came from.
      */
     private void startMove(int position) {
         if (adapter.getItemCount() < 2) return;
         moving = true;
         moveFrom = position;
+        moveDirty = false;
+        moveOriginal = new ArrayList<>(adapter.layout());
         adapter.setMovingPosition(position);
         Toast.makeText(this, R.string.move_hint, Toast.LENGTH_LONG).show();
         focusTile(position);
@@ -1665,16 +1672,46 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         moving = false;
         moveFrom = -1;
         adapter.setMovingPosition(-1);
+        if (moveDirty && moveOriginal != null) {
+            // The live drag only moved views: put the tiles back and rebuild from the saved order.
+            adapter.setLayout(moveOriginal);
+            reloadTiles();
+        }
+        moveDirty = false;
+        moveOriginal = null;
         restoreFocus();
     }
 
-    /** Puts the carried tile down on {@code to}: into a folder, or moved to that spot. */
+    /**
+     * One step of the live drag: the carried tile trades places with the tile the cursor landed
+     * on. A folder is the one exception — dropping an app on a folder means "move it inside", not
+     * "swap with it", so the carried tile holds its slot there and OK moves it in.
+     */
+    private void dragStep(int position) {
+        final AppAdapter.Entry held = adapter.entryAt(moveFrom);
+        final AppAdapter.Entry target = adapter.entryAt(position);
+        if (held == null || target == null) return;
+        if (target.kind == AppAdapter.Entry.HOME_SETTINGS) return;   // not a layout slot
+        if (target.kind == AppAdapter.Entry.FOLDER && held.kind != AppAdapter.Entry.FOLDER) return;
+        adapter.swap(moveFrom, position);
+        moveFrom = position;
+        adapter.setMovingPosition(position);
+        moveDirty = true;
+        // A swap reshuffles holders, so focus can be left behind on the tile that was displaced.
+        // Put it back on the carried tile: it is the cursor, and the next step starts from it.
+        grid.post(() -> focusTile(position));
+    }
+
+    /** Puts the carried tile down on {@code to}: into a folder, or where the live drag left it. */
     private void dropMove(int to) {
         if (!moving) return;
+        final boolean dirty = moveDirty;
         final int from = moveFrom;
         moving = false;
         moveFrom = -1;
         adapter.setMovingPosition(-1);
+        moveDirty = false;
+        moveOriginal = null;
         final AppAdapter.Entry held = adapter.entryAt(from);
         final AppAdapter.Entry target = adapter.entryAt(to);
         // Work from the order actually on screen, not from the saved layout: an app the layout does
@@ -1687,20 +1724,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
         final int toAt = slotIndexOf(next, target);
-        if (toAt == fromAt) {
-            restoreFocus();
+        if (toAt < 0) {
+            restoreFocus();                                  // e.g. the settings tile: no slot
             return;
         }
-        Config.Slot mine = next.get(fromAt);
-        if (next.get(toAt).kind == Config.Slot.FOLDER && mine.kind != Config.Slot.FOLDER) {
+        if (toAt == fromAt) {
+            // The live drag already brought the carried tile here: the order on screen is the
+            // result, so all that is left is to keep it.
+            if (dirty) commitMove(next, to);
+            else restoreFocus();
+            return;
+        }
+        if (next.get(toAt).kind == Config.Slot.FOLDER && held.kind != AppAdapter.Entry.FOLDER) {
             Config.Slot folder = next.get(toAt);
             List<String> apps = new ArrayList<>(folder.apps);
-            if (!apps.contains(mine.pkg)) apps.add(mine.pkg);
+            if (!apps.contains(held.pkg)) apps.add(held.pkg);
             next.set(toAt, Config.Slot.folder(folder.uid, folder.name, apps));
             next.remove(fromAt);
             commitMove(next, fromAt < toAt ? toAt - 1 : toAt);
             return;
         }
+        Config.Slot mine = next.get(fromAt);
         next.remove(fromAt);
         int at = Math.max(0, Math.min(toAt, next.size()));
         next.add(at, mine);
@@ -2222,29 +2266,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Hugging the corner keeps the panel's whole bottom edge right above the tile, the way a tvOS
      * menu grows out of the icon it belongs to.
      *
-     * <p>The row the tile sits on decides both the slide and the direction:</p>
+     * <p>The row the tile sits on decides the slide only; every row opens UPWARDS:</p>
      * <ul>
      *   <li><b>Dock row</b> (position &lt; COLUMNS): the panel slides two icon widths right (one
-     *   less than the grid's three) and opens UPWARDS, its bottom edge flush with the tile's top
+     *   less than the grid's three) and opens upwards, its bottom edge flush with the tile's top
      *   edge — zero gap, the way a tvOS menu grows out of the icon it belongs to.</li>
-     *   <li><b>Bottom grid row</b> (last visible row above the dock): the mirror image of the
-     *   dock — two icon widths right as well, but opening DOWNWARDS with its top edge flush
-     *   against the tile's bottom edge, so the panel drops out of the tile's lower-right corner
-     *   instead of covering the dock above it.</li>
-     *   <li><b>Every other row</b>: three icon widths right, opening upwards.</li>
+     *   <li><b>Every other row</b> (bottom row included): three icon widths right, opening
+     *   upwards the same way — one behaviour for the whole grid.</li>
      * </ul>
      *
-     * <p>Every edge meets its tile edge flush (gap 0), not floating a few pixels off it. Two flips
-     * keep the panel on screen: a direction with no room falls back to the other one, and a panel
-     * wider than the room left of the tile slides to the screen margin instead of hanging off the
-     * left edge.
+     * <p>Both slides give back two thirds of an icon width: the compact menu is narrower now, and
+     * without the nudge its left edge drifted past the tile it belongs to.</p>
+     *
+     * <p>Every edge meets its tile edge flush (gap 0), not floating a few pixels off it. A flip
+     * keeps the panel on screen when there is no room above, and a panel wider than the room left
+     * of the tile slides to the screen margin instead of hanging off the left edge.
      */
     private int[] spotNearTile(Rect tile, int width, int height, int position) {
         int margin = (int) (22 * density);
         int gap = 0;                                     // flush: the panel edge meets the tile edge
         int icon = (int) (48 * density);
-        int shift = icon * 3;                           // three app-icon widths right (grid rows)
-        int dockShift = icon * 2;                       // dock row and bottom row: two icons right
+        int nudge = icon * 2 / 3;                       // the slimmer menu sits 2/3 icon left
+        int shift = icon * 3 - nudge;                   // three app-icon widths right (grid rows)
+        int dockShift = icon * 2 - nudge;               // dock row: two icons right
         int back = icon * 2;                            // two app-icon widths left (last column)
         int screenW = root.getWidth();
         int screenH = root.getHeight();
@@ -2252,18 +2296,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int y;
         if (tile != null) {
             boolean dockRow = position >= 0 && position < COLUMNS;
-            boolean bottomRow = !dockRow && tile.bottom > screenH * 0.52f;
-            int slide = dockRow || bottomRow ? dockShift : shift;
+            int slide = dockRow ? dockShift : shift;
             x = tile.right - width + gap + slide;       // right edges line up, then the slide
-            if (bottomRow) {
-                y = tile.bottom + gap;                  // bottom row: top edge flush below tile
-                if (y + height > screenH - margin) {
-                    y = screenH - margin - height;      // no room below: bottom edge to screen margin
-                }
-            } else {
-                y = tile.top - height - gap;            // grid and dock: bottom edge flush above tile
-                if (y < margin) y = tile.bottom + gap;  // no room above: open downwards
-            }
+            y = tile.top - height - gap;                // every row: bottom edge flush above tile
+            if (y < margin) y = tile.bottom + gap;      // no room above: open downwards
             if (x > screenW - margin - width) {
                 x = tile.right - width + gap - back;    // right-most column: two icons left instead
             }
